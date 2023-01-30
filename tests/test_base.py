@@ -1,5 +1,4 @@
 from django.utils.functional import Promise
-from django.utils.translation import gettext_lazy
 from polib import (
     POEntry,
     POFile,
@@ -15,6 +14,12 @@ from okrand import (
     parse_python,
     String,
     UpdateResult,
+)
+from tests.models import (
+    After,
+    After2,
+    After3,
+    Before,
 )
 
 
@@ -273,44 +278,16 @@ def test_normalization():
 
 
 def test_monkey_patch_django():
-
-    from django.db.models import (
-        Model,
-        Field,
-    )
-
-    class Before(Model):
-        field = Field()
-
-        class Meta:
-            app_label = 'foo'
-
     assert type(Before._meta.verbose_name) == str
     assert type(Before._meta.get_field('field').verbose_name) == str
 
     monkey_patch_django()
 
-    class After(Model):
-        field = Field()
-
-        class Meta:
-            app_label = 'foo'
-
     assert isinstance(After._meta.verbose_name, Promise)
     assert isinstance(After._meta.get_field('field').verbose_name, Promise)
 
-    class After2(Model):
-        field = Field(verbose_name=gettext_lazy('field manual'))
-
-        class Meta:
-            app_label = 'foo'
-            verbose_name = gettext_lazy('manual')
-
     assert After2._meta.verbose_name == 'manual'
     assert After2._meta.get_field('field').verbose_name == 'field manual'
-    #
-    # class After3(Model):
-    #     field = Field()
-    #
-    #     # No class Meta!
 
+    assert isinstance(After3._meta.verbose_name, Promise)
+    assert isinstance(After3._meta.get_field('field').verbose_name, Promise)

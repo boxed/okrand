@@ -1,6 +1,5 @@
 __version__ = '1.0.0'
 
-import argparse
 import ast
 import os
 import re
@@ -16,6 +15,8 @@ from dataclasses import (
 from pathlib import Path
 from typing import List
 
+from django.apps.registry import apps
+from django.conf import settings
 from django.template import Template
 from django.template.base import TokenType
 from django.template.loader_tags import IncludeNode
@@ -23,13 +24,11 @@ from django.templatetags.i18n import (
     BlockTranslateNode,
     TranslateNode,
 )
-
-from django.apps.registry import apps
 from django.utils.functional import Promise
 from gitignorefile import Cache
 from polib import (
-    pofile,
     POEntry,
+    pofile,
 )
 
 
@@ -318,11 +317,9 @@ def ignore_filename(full_path, *, ignore_list):
 
 
 def find_source_strings(ignore_list):
-    # TODO:
-    # yield from translations_for_all_models()
+    yield from translations_for_all_models()
 
-    # TODO: Path(__file__).parent should be something more general. Try to find .git/setup.cfg/pyproject.toml/poetry.toml
-    for root, dirs, files in walk_respecting_gitignore(Path(__file__).parent):
+    for root, dirs, files in walk_respecting_gitignore(settings.BASE_DIR):
         for f in files:
             extension = Path(f).suffix
             if extension not in ['.py', '.vue', '.js', '.html']:
@@ -408,8 +405,7 @@ def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
 
 
 def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None) -> UpdateResult:
-    # TODO: settings.BASE_DIR?
-    po_file = pofile(Path('locale') / language_code / 'LC_MESSAGES' / f'{domain}.po')
+    po_file = pofile(Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po')
 
     result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
 
@@ -531,7 +527,6 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> Update
             if 'fuzzy' not in po_entry.flags:
                 po_entry.flags.append('fuzzy')
 
-    # TODO: update the i18n view to handle plural
     newly_obsolete_strings = [x.msgid for x in newly_obsolete_po_entries]
     newly_obsolete_strings_set = set(newly_obsolete_strings)
     return UpdateResult(
@@ -560,9 +555,8 @@ def monkey_patch_django():
 
     def okrand_contribute_to_class(self, cls, name):
         if not cls.__module__.startswith('django.'):
-            print(self)
             if not self.meta or 'verbose_name' not in self.meta.__dict__:
-                class OkrandMeta(self.meta):
+                class OkrandMeta:
                     verbose_name = gettext_lazy(camel_case_to_spaces(cls.__name__))
 
                 self.meta = OkrandMeta
