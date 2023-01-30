@@ -1,0 +1,3 @@
+Django>=3.2
+gitignorefile
+git+https://github.com/izimobil/polib.git@d6399738337c13f9a3ae76f61d236f98aac21023

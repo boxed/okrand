@@ -1,0 +1,13 @@
+include AUTHORS.rst
+include CONTRIBUTING.rst
+include HISTORY.rst
+include LICENSE
+include README.rst
+include requirements.txt
+exclude tests/*.*
+recursive-include okrand *.*
+recursive-exclude okrand *__tests.py
+recursive-exclude okrand *.pyc
+recursive-exclude okrand/snapshots *.*
+recursive-exclude okrand testreport.xml
+prune *__tests.py
