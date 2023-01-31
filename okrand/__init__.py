@@ -38,23 +38,19 @@ def translations_for_all_models():
         verbose_name = model._meta.original_attrs.get('verbose_name')
         verbose_name_plural = model._meta.original_attrs.get('verbose_name_plural')
 
-        if isinstance(verbose_name, Promise):
-            continue
+        if not isinstance(verbose_name, Promise) or not isinstance(verbose_name_plural, Promise):
+            yield String(
+                msgid=verbose_name,
+                msgid_plural=verbose_name_plural,
+                translation_function='gettext',
+                context='auto django model',
+            )
 
-        if isinstance(verbose_name_plural, Promise):
-            continue
-
-        yield String(
-            msgid=verbose_name,
-            msgid_plural=verbose_name_plural,
-            translation_function='gettext',
-            context='auto django model',
-        )
         yield from _translations_for_model(model)
 
 
 def _translations_for_model(model):
-    for field in model._meta.get_fields():
+    for field in model._meta._get_fields(reverse=False):
         try:
             # if the field has explicit verbose_name
             if isinstance(field.verbose_name, Promise):
@@ -534,33 +530,3 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> Update
         newly_obsolete_strings=newly_obsolete_strings,
         previously_obsolete_strings=[x.msgid for x in obsolete_po_entries if x.msgid not in newly_obsolete_strings_set],
     )
-
-
-def monkey_patch_django():
-    from django.db.models import Field
-    from django.utils.translation import gettext_lazy
-    from django.db.models.options import Options
-    from django.utils.text import camel_case_to_spaces
-
-    def okrand_set_attributes_from_name(self, name):
-        self.name = self.name or name
-        self.attname, self.column = self.get_attname_column()
-        self.concrete = self.column is not None
-        if self.verbose_name is None and self.name:
-            self.verbose_name = gettext_lazy(self.name.replace("_", " "))
-
-    Field.set_attributes_from_name = okrand_set_attributes_from_name
-
-    orig_contribute_to_class = Options.contribute_to_class
-
-    def okrand_contribute_to_class(self, cls, name):
-        if not cls.__module__.startswith('django.'):
-            if not self.meta or 'verbose_name' not in self.meta.__dict__:
-                class OkrandMeta:
-                    verbose_name = gettext_lazy(camel_case_to_spaces(cls.__name__))
-
-                self.meta = OkrandMeta
-
-        orig_contribute_to_class(self, cls, name)
-
-    Options.contribute_to_class = okrand_contribute_to_class

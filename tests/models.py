@@ -4,35 +4,20 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy
 
-from okrand import monkey_patch_django
 
-
-class Before(Model):
+class NoMetaNoExplicitVerboseName(Model):
     field = Field()
 
 
-class BeforeWithMeta(Model):
-    field = Field()
+class WithMetaAndVerboseName(Model):
+    field = Field(verbose_name=gettext_lazy('field explicit'))
 
     class Meta:
-        pass
+        verbose_name = gettext_lazy('explicit')
 
 
-monkey_patch_django()
-
-
-class After(Model):
-    field = Field()
-
-
-class After2(Model):
-    field = Field(verbose_name=gettext_lazy('field manual'))
+class WithMetaAndOnlyPluralVerboseName(Model):
+    field = Field(verbose_name=gettext_lazy('field explicit'))
 
     class Meta:
-        verbose_name = gettext_lazy('manual')
-
-
-class After3(Model):
-    field = Field()
-
-    # No class Meta!
+        verbose_name_plural = gettext_lazy('explicit')

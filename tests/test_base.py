@@ -1,4 +1,10 @@
+from django.apps import apps
 from django.utils.functional import Promise
+from django.utils.translation import (
+    activate,
+    gettext,
+    trans_real,
+)
 from polib import (
     POEntry,
     POFile,
@@ -7,19 +13,12 @@ from polib import (
 from okrand import (
     _update_language,
     ignore_filename,
-    monkey_patch_django,
     normalize_func,
     parse_django_template,
     parse_js,
     parse_python,
     String,
     UpdateResult,
-)
-from tests.models import (
-    After,
-    After2,
-    After3,
-    Before,
 )
 
 
@@ -277,17 +276,25 @@ def test_normalization():
     assert s.msgid_plural == 'bar\n'
 
 
-def test_monkey_patch_django():
-    assert type(Before._meta.verbose_name) == str
-    assert type(Before._meta.get_field('field').verbose_name) == str
+def test_create_implicit_verbose_name_for_models():
+    for model in apps.get_app_config('tests').models.values():
+        assert isinstance(model._meta.verbose_name, Promise)
+        assert isinstance(model._meta.verbose_name_plural, Promise)
+        for field in model._meta.get_fields():
+            assert isinstance(field.verbose_name, Promise)
 
-    monkey_patch_django()
 
-    assert isinstance(After._meta.verbose_name, Promise)
-    assert isinstance(After._meta.get_field('field').verbose_name, Promise)
+class FakeTranslationCatalog:
+    def gettext(self, s):
+        return f'<translation of {s}>'
 
-    assert After2._meta.verbose_name == 'manual'
-    assert After2._meta.get_field('field').verbose_name == 'field manual'
 
-    assert isinstance(After3._meta.verbose_name, Promise)
-    assert isinstance(After3._meta.get_field('field').verbose_name, Promise)
+def test_switched_language():
+    trans_real._active.value = FakeTranslationCatalog()
+    assert gettext('foo') == '<translation of foo>'
+
+    for model in apps.get_app_config('tests').models.values():
+        assert '<translation of' in str(model._meta.verbose_name)
+        assert '<translation of' in str(model._meta.verbose_name_plural)
+        for field in model._meta.get_fields():
+            assert '<translation of' in str(field.verbose_name)

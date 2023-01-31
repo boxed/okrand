@@ -7,6 +7,11 @@ It is a pure Python program so doesn't rely on ``gettext``.
 
 Okrand will respect your ``.gitignore``.
 
+Installation
+============
+
+Add `okrand` to `INSTALLED_APP`.
+
 
 Configuration
 =============
