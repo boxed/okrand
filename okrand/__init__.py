@@ -15,7 +15,7 @@ from dataclasses import (
 from pathlib import Path
 from typing import List
 
-from django.apps.registry import apps
+from django.apps.registry import apps as registry_apps
 from django.conf import settings
 from django.template import Template
 from django.template.base import TokenType
@@ -33,7 +33,7 @@ from polib import (
 
 
 def translations_for_all_models():
-    for model in apps.get_models():
+    for model in registry_apps.get_models():
         # if the field has explicit verbose_name
         verbose_name = model._meta.original_attrs.get('verbose_name')
         verbose_name_plural = model._meta.original_attrs.get('verbose_name_plural')
@@ -161,8 +161,6 @@ def parse_python(content):
                     if isinstance(x, ast.AST):
                         # noinspection PyTypeChecker
                         yield from w(x)
-                    else:
-                        pass
             elif isinstance(value, ast.AST):
                 # noinspection PyTypeChecker
                 yield from w(value)
@@ -363,7 +361,7 @@ def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
         config = {}
 
     def get_conf_list(name):
-        return [x for x in config.get(name, []).split('\n') if x]
+        return [x for x in config.get(name, '').split('\n') if x]
 
     ignore_list = get_conf_list('ignore')
     ignore_list += [

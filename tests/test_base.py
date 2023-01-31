@@ -298,3 +298,13 @@ def test_switched_language():
         assert '<translation of' in str(model._meta.verbose_name_plural)
         for field in model._meta.get_fields():
             assert '<translation of' in str(field.verbose_name)
+
+
+def test_warning_non_constant_argument(capsys):
+    assert list(parse_python('''
+def foo(bar):
+    return gettext(bar)
+    ''')) == []
+
+    captured = capsys.readouterr()
+    assert captured.out == 'Warning: found non-constant first argument\n'

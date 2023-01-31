@@ -1,4 +1,37 @@
+import inspect
+from pathlib import Path
+
+import polib
+from django.conf import settings
+from django.http import (
+    Http404,
+    HttpResponseRedirect,
+)
+from django.utils.translation import activate
+from django.views.i18n import JavaScriptCatalog
+from iommi import (
+    Column,
+    Field,
+    Form,
+    Page,
+    Table,
+)
+from iommi.debug import src_debug_url_builder
+
+from okrand import update_po_files
+
+
+def strip_prefix(s, *, prefix, strict=False):
+    if s.startswith(prefix):
+        return s[len(prefix):]
+    assert strict is False, f"String '{s}' does not start with prefix '{prefix}'"
+    return s
+
+
 def i18n(request):
+    if not request.user.is_superuser or not settings.DEBUG:
+        raise Http404()
+
     import sys
     from django.apps import apps
     from os.path import dirname
@@ -47,12 +80,13 @@ def i18n(request):
     with open(Path(settings.BASE_DIR) / '.gitignore') as f:
         gitignore = [x for x in f.read().split('\n') if x]
 
+    # TODO: hardcoded language is wrong
     language = 'sv'
     js_catalog_output = (Path(__file__).parent / 'static' / f'{language}_i18n.js').relative_to(settings.BASE_DIR)
     ignore = gitignore + [
         str(js_catalog_output),
-        'dryft/base/static/vue.global.js',
     ]
+    # TODO: more ignores somehow? from okrand ignores? okrand config at the very least
 
     potential_rename_fields = {}
     potential_rename_prefix = 'potential_rename-'
@@ -78,8 +112,7 @@ def i18n(request):
             if k.startswith(potential_rename_prefix)
         }
         update_po_files(old_msgid_by_new_msgid=old_msgid_by_new_msgid)
-        return redirect('.')
-
+        return HttpResponseRedirect('.')
 
     potential_renames_form = Form(
         title='Handle renames',
@@ -90,11 +123,11 @@ def i18n(request):
         ),
     )
 
-
-    # noinspection PyPackageRequirements
-    import polib
-    path = Path(__file__).parent.parent.parent / 'locale' / language / 'LC_MESSAGES' / 'django.po'
-    po = polib.pofile(str(path))
+    path = Path(settings.BASE_DIR) / 'locale' / language / 'LC_MESSAGES' / 'django.po'
+    if path.exists():
+        po = polib.pofile(str(path))
+    else:
+        po = polib.pofile('')
 
     def process(m):
         m.problems = []
@@ -140,7 +173,7 @@ def i18n(request):
             activate(language)
             f.write(JavaScriptCatalog().get(request, domain='django').content)
 
-        return redirect('.')
+        return HttpResponseRedirect('.')
 
     save_button = dict(actions__submit=dict(display_name='Save', post_handler=save))
 
