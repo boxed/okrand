@@ -21,3 +21,11 @@ class WithMetaAndOnlyPluralVerboseName(Model):
 
     class Meta:
         verbose_name_plural = gettext_lazy('explicit')
+
+
+class BadVerboseNamesName(Model):
+    field = Field(verbose_name='raw strings are bad!')
+
+    class Meta:
+        verbose_name = 'raw strings are bad!'
+        verbose_name_plural = 'raw strings are bad!'

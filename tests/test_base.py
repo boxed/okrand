@@ -18,8 +18,10 @@ from okrand import (
     parse_js,
     parse_python,
     String,
+    translations_for_all_models,
     UpdateResult,
 )
+from tests.models import BadVerboseNamesName
 
 
 def collect(x):
@@ -278,10 +280,26 @@ def test_normalization():
 
 def test_create_implicit_verbose_name_for_models():
     for model in apps.get_app_config('tests').models.values():
+        if model is BadVerboseNamesName:
+            continue
         assert isinstance(model._meta.verbose_name, Promise)
         assert isinstance(model._meta.verbose_name_plural, Promise)
         for field in model._meta.get_fields():
             assert isinstance(field.verbose_name, Promise)
+
+
+def test_collect_django_models(capsys):
+    result = list(translations_for_all_models())
+
+    # TODO: something more reasonable here!
+    assert len(result) == 14
+
+    captured = capsys.readouterr()
+    assert captured.out.split('\n') == [
+        "Warning: verbose_name on <class 'tests.models.BadVerboseNamesName'> is a string, not set to a gettext_lazy object",
+        "Warning: verbose_name_plural on <class 'tests.models.BadVerboseNamesName'> is a string, not set to a gettext_lazy object",
+        '',
+    ]
 
 
 class FakeTranslationCatalog:
@@ -294,6 +312,8 @@ def test_switched_language():
     assert gettext('foo') == '<translation of foo>'
 
     for model in apps.get_app_config('tests').models.values():
+        if model == BadVerboseNamesName:
+            continue
         assert '<translation of' in str(model._meta.verbose_name)
         assert '<translation of' in str(model._meta.verbose_name_plural)
         for field in model._meta.get_fields():
@@ -307,4 +327,4 @@ def foo(bar):
     ''')) == []
 
     captured = capsys.readouterr()
-    assert captured.out == 'Warning: found non-constant first argument\n'
+    assert captured.out == 'Warning: found non-constant first argument: bar\n'

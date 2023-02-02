@@ -7,6 +7,38 @@ It is a pure Python program so doesn't rely on ``gettext``.
 
 Okrand will respect your ``.gitignore``.
 
+
+Django models
+=============
+
+Okrand will upgrade Django models so translation is much easier. You don't need to write ``verbose_name`` anymore! And if you do write them Okrand will upgrade raw strings to `gettext_lazy`.
+
+So concretely this model:
+
+.. code-block:: python
+
+    from django.utils.translation import gettext_lazy as _
+
+
+    class Book(Model):
+        name = CharField(verbose_name=_('name'))
+        isbn = CharField(verbose_name=_('ISBN'))
+
+        class Meta:
+            verbose_name = _('author')
+            verbose_name = _('authors')
+
+Can now be changed to the more natural:
+
+.. code-block:: python
+
+    class Book(Model):
+        name = CharField()
+        isbn = CharField(verbose_name='ISBN')
+
+Note that I don't need to wrap the ``verbose_name`` in a `gettext_lazy` call anymore.
+
+
 Installation
 ============
 
