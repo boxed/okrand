@@ -44,6 +44,14 @@ Installation
 
 Add `okrand` to `INSTALLED_APP`.
 
+Add `OKRAND_STATIC_PATH` to settings, pointing to where Okrand should write the JavaScript catalog files. Typically something like:
+
+.. code-block:: python
+
+    OKRAND_STATIC_PATH = Path(BASE_DIR) / 'yourproject' / 'base' / 'static'
+
+If you have a ``base`` app to put common stuff.
+
 
 Configuration
 =============
