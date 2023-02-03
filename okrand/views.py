@@ -82,7 +82,7 @@ def i18n(request):
 
     # TODO: hardcoded language is wrong
     language = 'sv'
-    js_catalog_output = (Path(__file__).parent / 'static' / f'{language}_i18n.js').relative_to(settings.BASE_DIR)
+    js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language}_i18n.js')
     ignore = gitignore + [
         str(js_catalog_output),
     ]
