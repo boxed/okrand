@@ -24,6 +24,7 @@ from django.templatetags.i18n import (
     BlockTranslateNode,
     TranslateNode,
 )
+from django.utils.functional import Promise
 from gitignorefile import Cache
 from polib import (
     POEntry,
@@ -33,43 +34,34 @@ from polib import (
 
 def translations_for_all_models():
     for model in registry_apps.get_models():
-        verbose_name = model._meta.verbose_name
-        verbose_name_plural = model._meta.verbose_name_plural
+        yield from translations_for_model(model)
 
-        if isinstance(verbose_name, str):
-            print(f'Warning: verbose_name on {model} is a string, not set to a gettext_lazy object')
 
-        if isinstance(verbose_name_plural, str):
-            print(f'Warning: verbose_name_plural on {model} is a string, not set to a gettext_lazy object')
+def translations_for_model(model):
+    yield from _translations_for_model_only(model)
+    yield from _translations_for_model_fields(model)
 
-        if getattr(verbose_name, '_from_okrand', False) or getattr(verbose_name_plural, '_from_okrand', False):
+
+def _translations_for_model_only(model):
+    verbose_name = getattr(model._meta.verbose_name, '_okrand_original_string', None)
+    verbose_name_plural = getattr(model._meta.verbose_name_plural, '_okrand_original_string', None)
+    if verbose_name is not None or verbose_name_plural is not None:
+        yield String(
+            msgid=verbose_name,
+            msgid_plural=verbose_name_plural,
+            translation_function='gettext',
+        )
+
+
+def _translations_for_model_fields(model):
+    for field in model._meta._get_fields(reverse=False):
+        verbose_name = getattr(field.verbose_name, '_okrand_original_string', field.verbose_name)
+
+        if verbose_name is not None:
             yield String(
                 msgid=verbose_name,
-                msgid_plural=verbose_name_plural,
                 translation_function='gettext',
-                context='auto django model',
             )
-
-        yield from _translations_for_model(model)
-
-
-def _translations_for_model(model):
-    for field in model._meta._get_fields(reverse=False):
-        try:
-            if isinstance(field.verbose_name, str):
-                print(f'Warning: verbose_name on {model}.{field} is a string, not set to a gettext_lazy object')
-
-            # if the field has explicit verbose_name
-            if not getattr(field.verbose_name, '_from_okrand', False):
-                continue
-
-            yield String(
-                msgid=field.verbose_name,
-                translation_function='gettext',
-                context='auto django field',
-            )
-        except AttributeError:
-            pass
 
 
 def walk_respecting_gitignore(path):
@@ -103,6 +95,8 @@ class _String:
 
 def String(*, msgid, translation_function, msgid_plural=None, context=''):
     assert msgid is not None
+    assert not isinstance(msgid, Promise)
+    assert not isinstance(msgid_plural, Promise)
     return _String(
         msgid=normalize(msgid),
         translation_function=translation_function,
@@ -132,6 +126,7 @@ def parse_python(content):
             func = normalize_func(node.func.id)
 
             if not isinstance(node.args[0], ast.Constant):
+                # noinspection PyTypeChecker
                 print('Warning: found non-constant first argument:', ast.unparse(node.args[0]))
                 return
 

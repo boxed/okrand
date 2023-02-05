@@ -82,10 +82,12 @@ def i18n(request):
 
     # TODO: hardcoded language is wrong
     language = 'sv'
-    js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language}_i18n.js')
-    ignore = gitignore + [
-        str(js_catalog_output),
-    ]
+    js_catalog_output = None
+    if hasattr(settings, 'OKRAND_STATIC_PATH'):
+        js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language}_i18n.js')
+        ignore = gitignore + [
+            str(js_catalog_output),
+        ]
     # TODO: more ignores somehow? from okrand ignores? okrand config at the very least
 
     potential_rename_fields = {}
@@ -169,9 +171,10 @@ def i18n(request):
         from django.core import management
         management.call_command('compilemessages', ignore=ignore)
 
-        with open(js_catalog_output, 'wb') as f:
-            activate(language)
-            f.write(JavaScriptCatalog().get(request, domain='django').content)
+        if js_catalog_output:
+            with open(js_catalog_output, 'wb') as f:
+                activate(language)
+                f.write(JavaScriptCatalog().get(request, domain='django').content)
 
         return HttpResponseRedirect('.')
 

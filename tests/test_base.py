@@ -1,8 +1,10 @@
+import pytest
 from django.apps import apps
 from django.utils.functional import Promise
+from django.utils.text import format_lazy
 from django.utils.translation import (
-    activate,
     gettext,
+    gettext_lazy,
     trans_real,
 )
 from polib import (
@@ -19,9 +21,19 @@ from okrand import (
     parse_python,
     String,
     translations_for_all_models,
+    translations_for_model,
     UpdateResult,
 )
-from tests.models import BadVerboseNamesName
+from okrand.apps import (
+    upgrade_plural,
+    upgrade_verbose_name,
+)
+from tests.models import (
+    NoMetaNoExplicitVerboseName,
+    UpgradedStringsName,
+    WithMetaAndOnlyPluralVerboseName,
+    WithMetaAndVerboseName,
+)
 
 
 def collect(x):
@@ -279,45 +291,113 @@ def test_normalization():
 
 
 def test_create_implicit_verbose_name_for_models():
+    # all models will have all their fields as promises now
     for model in apps.get_app_config('tests').models.values():
-        if model is BadVerboseNamesName:
-            continue
         assert isinstance(model._meta.verbose_name, Promise)
         assert isinstance(model._meta.verbose_name_plural, Promise)
         for field in model._meta.get_fields():
             assert isinstance(field.verbose_name, Promise)
 
 
-def test_collect_django_models(capsys):
-    result = list(translations_for_all_models())
+pk_string = String(
+    msgid='ID',
+    translation_function='gettext',
+)
 
-    # TODO: something more reasonable here!
-    assert len(result) == 14
 
-    captured = capsys.readouterr()
-    assert captured.out.split('\n') == [
-        "Warning: verbose_name on <class 'tests.models.BadVerboseNamesName'> is a string, not set to a gettext_lazy object",
-        "Warning: verbose_name_plural on <class 'tests.models.BadVerboseNamesName'> is a string, not set to a gettext_lazy object",
-        '',
+@pytest.mark.parametrize(
+    ['model', 'expected'],
+    [
+        (
+            NoMetaNoExplicitVerboseName, [
+                String(
+                    msgid='no meta no explicit verbose name',
+                    translation_function='gettext',
+                    msgid_plural='no meta no explicit verbose names',
+                ),
+                pk_string,
+                String(
+                    msgid='field',
+                    translation_function='gettext',
+                ),
+            ]
+        ),
+        (
+            WithMetaAndVerboseName, [
+                String(
+                    msgid='explicit',
+                    translation_function='gettext',
+                    msgid_plural='explicits',
+                ),
+                pk_string,
+                String(
+                    msgid='field explicit',
+                    translation_function='gettext',
+                ),
+            ]
+        ),
+        (
+            WithMetaAndOnlyPluralVerboseName, [
+                String(
+                    msgid='with meta and only plural verbose name',
+                    translation_function='gettext',
+                    msgid_plural='explicit',
+                ),
+                pk_string,
+                String(
+                    msgid='field explicit',
+                    translation_function='gettext',
+                ),
+            ]
+        ),
+        (
+            UpgradedStringsName, [
+                String(
+                    msgid='upgraded',
+                    translation_function='gettext',
+                    msgid_plural='upgraded plural',
+                ),
+                pk_string,
+                String(
+                    msgid='upgraded field',
+                    translation_function='gettext',
+                ),
+            ]
+        ),
     ]
+)
+def test_collect_django_models(capsys, model, expected):
+    actual = list(translations_for_model(model))
+    assert actual == expected
 
 
 class FakeTranslationCatalog:
+    # noinspection PyMethodMayBeStatic
     def gettext(self, s):
         return f'<translation of {s}>'
 
 
 def test_switched_language():
+    assert not hasattr(trans_real._active, 'value')
     trans_real._active.value = FakeTranslationCatalog()
-    assert gettext('foo') == '<translation of foo>'
+    try:
+        assert gettext('foo') == '<translation of foo>'
+        assert gettext_lazy('foo') == '<translation of foo>'
 
-    for model in apps.get_app_config('tests').models.values():
-        if model == BadVerboseNamesName:
-            continue
-        assert '<translation of' in str(model._meta.verbose_name)
-        assert '<translation of' in str(model._meta.verbose_name_plural)
-        for field in model._meta.get_fields():
-            assert '<translation of' in str(field.verbose_name)
+        # We should get the translated strings here
+        for model in apps.get_app_config('tests').models.values():
+            assert '<translation of' in str(model._meta.verbose_name)
+            assert '<translation of' in str(model._meta.verbose_name_plural)
+            for field in model._meta.get_fields():
+                assert '<translation of' in str(field.verbose_name)
+
+        # The collection shouldn't collect the translated strings!
+        for s in translations_for_all_models():
+            assert '<translation of' not in s.msgid
+            assert s.msgid_plural is None or '<translation of' not in s.msgid_plural
+
+    finally:
+        del trans_real._active.value
 
 
 def test_warning_non_constant_argument(capsys):
@@ -328,3 +408,67 @@ def foo(bar):
 
     captured = capsys.readouterr()
     assert captured.out == 'Warning: found non-constant first argument: bar\n'
+
+
+def test_raw_string_upgrade():
+    assert isinstance(UpgradedStringsName._meta.verbose_name, Promise)
+    assert isinstance(UpgradedStringsName._meta.verbose_name_plural, Promise)
+    assert isinstance(UpgradedStringsName._meta.get_field('field').verbose_name, Promise)
+
+
+def test_upgrade_verbose_name():
+    string = 'string'
+
+    class Foo:
+        def __init__(self):
+            self.verbose_name = string
+
+    f = Foo()
+    upgrade_verbose_name(f)
+    assert f.verbose_name == 'string'
+    assert isinstance(f.verbose_name, Promise) and f.verbose_name._okrand_original_string is string
+
+
+def test_upgrade_plural():
+    string = 'strings'
+
+    class Foo:
+        def __init__(self):
+            self.verbose_name_plural = string
+
+    f = Foo()
+    upgrade_plural(f)
+    assert f.verbose_name_plural == 'strings'
+    assert isinstance(f.verbose_name_plural, Promise) and f.verbose_name_plural._okrand_original_string is string
+
+
+def test_upgrade_plural_2():
+    string = 'string'
+    generated_plural_string = format_lazy('{}s', string)
+
+    class Foo:
+        def __init__(self):
+            self.verbose_name_plural = generated_plural_string
+
+    f = Foo()
+    upgrade_plural(f)
+    assert f.verbose_name_plural == 'strings'
+    assert isinstance(f.verbose_name_plural, Promise)
+    assert f.verbose_name_plural._okrand_original_string == generated_plural_string
+    assert isinstance(f.verbose_name_plural._okrand_original_string, str)
+
+
+def test_upgrade_plural_3():
+    string = 'string'
+    generated_plural_string = format_lazy('{}s', gettext_lazy(string))
+
+    class Foo:
+        def __init__(self):
+            self.verbose_name_plural = generated_plural_string
+
+    f = Foo()
+    upgrade_plural(f)
+    assert f.verbose_name_plural == 'strings'
+    assert isinstance(f.verbose_name_plural, Promise)
+    assert f.verbose_name_plural._okrand_original_string == generated_plural_string
+    assert isinstance(f.verbose_name_plural._okrand_original_string, str)
