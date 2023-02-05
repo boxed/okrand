@@ -32,6 +32,10 @@ from polib import (
 )
 
 
+class OkrandException(Exception):
+    pass
+
+
 def translations_for_all_models():
     for model in registry_apps.get_models():
         yield from translations_for_model(model)
@@ -255,10 +259,6 @@ def parse_js(content):
             assert False, f'unknown gettext flavor {func}'
 
 
-def parse_vue(content):
-    yield from parse_js(content)
-
-
 # monkeypatch fixes to Django classes
 IncludeNode.child_nodelists = ()
 BlockTranslateNode.child_nodelists = ()
@@ -313,13 +313,21 @@ def ignore_filename(full_path, *, ignore_list):
     return False
 
 
+parse_function_by_extension = {
+    '.py': parse_python,
+    '.html': parse_django_template,
+    '.vue': parse_js,
+    '.js': parse_js,
+}
+
+
 def find_source_strings(ignore_list):
     yield from translations_for_all_models()
 
     for root, dirs, files in walk_respecting_gitignore(settings.BASE_DIR):
         for f in files:
             extension = Path(f).suffix
-            if extension not in ['.py', '.vue', '.js', '.html']:
+            if extension not in parse_function_by_extension:
                 continue
 
             full_path = Path(root) / f
@@ -330,22 +338,12 @@ def find_source_strings(ignore_list):
             with open(full_path) as file:
                 content = file.read()
 
-            if extension == '.py':
-                yield from parse_python(content)
-            elif extension == '.js':
-                yield from parse_js(content)
-            elif extension == '.vue':
-                yield from parse_vue(content)
-            elif extension == '.html':
-                assert 'templates' in full_path.parts, f'Only support parsing django templates as html for now ({root} {f})'
-                yield from parse_django_template(content)
-            else:
-                assert False, f'unknown extension {extension}'
+            parse_function_by_extension[extension](content)
 
 
 domain = 'django'
 
-POEntry.__repr__ = lambda self: f'<POEntry: {self.msgid}>'
+POEntry.__repr__ = lambda self: f'<POEntry: {self.msgid}{" (obsolete)" if self.obsolete else ""}>'
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -353,6 +351,10 @@ class UpdateResult:
     new_strings: List[str] = field(default_factory=list)
     newly_obsolete_strings: List[str] = field(default_factory=list)
     previously_obsolete_strings: List[str] = field(default_factory=list)
+
+
+class UnknownSortException(OkrandException):
+    pass
 
 
 def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
@@ -367,16 +369,11 @@ def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
         return [x for x in config.get(name, '').split('\n') if x]
 
     ignore_list = get_conf_list('ignore')
-    ignore_list += [
-        __file__,
-        __file__.replace('.py', '__tests.py')
-    ]
     languages = get_conf_list('languages')
     sort = config.get('sort', 'none').strip()
 
     if sort not in ('none', 'alphabetical'):
-        print(f'Unknown sort configuration "{sort}"')
-        exit(1)
+        raise UnknownSortException(f'Unknown sort configuration "{sort}"')
 
     strings = list(find_source_strings(ignore_list=ignore_list))
 
@@ -422,11 +419,6 @@ def normalize(msgid):
 
 
 def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> UpdateResult:
-    old_msgid_by_new_msgid = {
-        normalize(k): normalize(v)
-        for k, v in (old_msgid_by_new_msgid or {}).items()
-    }
-
     for po_entry in po_file:
         if po_entry.msgid:
             po_entry.msgid = normalize(po_entry.msgid)
@@ -444,19 +436,25 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> Update
         for x in po_file
     }
 
-    for new_msgid, old_msgid in old_msgid_by_new_msgid.items():
-        assert new_msgid in string_by_msgid
-        if not old_msgid:
-            po_entry_by_msgid[new_msgid] = POEntry(
-                msgid=new_msgid,
-                comment=string_by_msgid[new_msgid].context,
-            )
-        else:
-            assert old_msgid in po_entry_by_msgid
-            po_entry = po_entry_by_msgid.pop(old_msgid)
-            po_entry.flags.append('fuzzy')
-            po_entry.msgid = new_msgid
-            po_entry_by_msgid[new_msgid] = po_entry
+    if old_msgid_by_new_msgid is not None:
+        normalized_old_msgid_by_new_msgid = {
+            normalize(k): normalize(v)
+            for k, v in old_msgid_by_new_msgid.items()
+        }
+
+        for new_msgid, old_msgid in normalized_old_msgid_by_new_msgid.items():
+            assert new_msgid in string_by_msgid
+            if not old_msgid:
+                po_entry_by_msgid[new_msgid] = POEntry(
+                    msgid=new_msgid,
+                    comment=string_by_msgid[new_msgid].context,
+                )
+            else:
+                assert old_msgid in po_entry_by_msgid
+                po_entry = po_entry_by_msgid.pop(old_msgid)
+                po_entry.flags.append('fuzzy')
+                po_entry.msgid = new_msgid
+                po_entry_by_msgid[new_msgid] = po_entry
 
     new_strings = [
         s

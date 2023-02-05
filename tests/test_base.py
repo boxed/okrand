@@ -226,11 +226,10 @@ def test__update_language_plural_changed():
 def test__update_language_singular_changed():
     # setup
     po_file = POFile()
-    po_file.append(
-        POEntry(
-            msgid='old',
-        ),
-    )
+    po_file.extend([
+        POEntry(msgid='old'),
+        POEntry(msgid='old 2'),
+    ])
 
     # update returns two lists
     strings = [
@@ -238,24 +237,34 @@ def test__update_language_singular_changed():
             msgid='new',
             translation_function='gettext',
         ),
+        String(
+            msgid='new 2',
+            translation_function='gettext',
+        ),
     ]
     result = _update_language(po_file=po_file, strings=strings)
-    assert len(result.newly_obsolete_strings) == 1 and len(result.new_strings) == 1
+    assert len(result.newly_obsolete_strings) == 2 and len(result.new_strings) == 2
 
     # assert that the data is unchanged!
     assert list(po_file) == [
-        POEntry(
-            msgid='old',
-        ),
+        POEntry(msgid='old'),
+        POEntry(msgid='old 2'),
     ]
 
     # Now mark a couple as the same
     assert _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid={
-        result.new_strings[0]: result.newly_obsolete_strings[0],
-    }) == UpdateResult()
+        'new': 'old',  # "new" is same as "old"
+        'new 2': None,  # "new 2" is truly new, not a renamed string
+    }) == UpdateResult(
+        newly_obsolete_strings=['old 2']
+    )
     assert list(po_file) == [
         POEntry(
             msgid='new',
+        ),
+        POEntry(
+            msgid='old 2',
+            obsolete=True,
         ),
     ]
 
