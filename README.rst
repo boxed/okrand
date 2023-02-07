@@ -61,6 +61,7 @@ In ``setup.cfg`` you set:
  - languages used
  - additional ignore rules beyond ``.gitignore``. These are regexes for the full path.
  - sorting: none (default), alphabetical
+ - if the django model upgrade is enabled
 
 .. code-block::
 
@@ -72,6 +73,7 @@ In ``setup.cfg`` you set:
     ignore=
         .*some_annoying_path.*
     sort=alphabetical
+    django_model_upgrade=1
 
 
 What does "Okrand" mean?

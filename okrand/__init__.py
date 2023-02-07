@@ -36,6 +36,18 @@ class OkrandException(Exception):
     pass
 
 
+config_parser = ConfigParser()
+config_parser.read('setup.cfg')
+try:
+    config = dict(config_parser.items('tool:okrand'))
+except NoSectionError:
+    config = {}
+
+
+def get_conf_list(name):
+    return [x for x in config.get(name, '').split('\n') if x]
+
+
 def translations_for_all_models():
     for model in registry_apps.get_models():
         yield from translations_for_model(model)
@@ -322,7 +334,8 @@ parse_function_by_extension = {
 
 
 def find_source_strings(ignore_list):
-    yield from translations_for_all_models()
+    if get_conf_list('django_model_upgrade') in ('1', 'true'):
+        yield from translations_for_all_models()
 
     for root, dirs, files in walk_respecting_gitignore(settings.BASE_DIR):
         for f in files:
@@ -338,7 +351,7 @@ def find_source_strings(ignore_list):
             with open(full_path) as file:
                 content = file.read()
 
-            parse_function_by_extension[extension](content)
+            yield from parse_function_by_extension[extension](content)
 
 
 domain = 'django'
@@ -358,16 +371,6 @@ class UnknownSortException(OkrandException):
 
 
 def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
-    config_parser = ConfigParser()
-    config_parser.read('setup.cfg')
-    try:
-        config = dict(config_parser.items('tool:okrand'))
-    except NoSectionError:
-        config = {}
-
-    def get_conf_list(name):
-        return [x for x in config.get(name, '').split('\n') if x]
-
     ignore_list = get_conf_list('ignore')
     languages = get_conf_list('languages')
     sort = config.get('sort', 'none').strip()
