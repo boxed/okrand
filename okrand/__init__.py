@@ -48,6 +48,10 @@ def get_conf_list(name):
     return [x for x in config.get(name, '').split('\n') if x]
 
 
+def get_conf(name, default=None):
+    return config.get(name, default)
+
+
 def translations_for_all_models():
     for model in registry_apps.get_models():
         yield from translations_for_model(model)

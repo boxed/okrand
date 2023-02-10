@@ -11,7 +11,14 @@ Okrand will respect your ``.gitignore``.
 Django models
 =============
 
-Okrand will upgrade Django models so translation is much easier. You don't need to write ``verbose_name`` anymore! And if you do write them Okrand will upgrade raw strings to `gettext_lazy`.
+Okrand can upgrade Django models so translation is much easier. You don't need to write ``verbose_name`` anymore! And if you do write them Okrand will upgrade raw strings to `gettext_lazy`.
+
+Turn this feature on in your ``setup.cfg``:
+
+.. code-block::
+
+    [tool:okrand]
+    django_model_upgrade=1
 
 So concretely this model:
 

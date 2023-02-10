@@ -5,7 +5,7 @@ from django.apps import (
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy
 
-from okrand import get_conf_list
+from okrand import get_conf
 
 
 def upgrade_verbose_name(obj):
@@ -43,7 +43,7 @@ class OkrandConfig(AppConfig):
     name = 'okrand'
 
     def ready(self):
-        if get_conf_list('django_model_upgrade') in ('1', 'true'):
+        if get_conf('django_model_upgrade') in ('1', 'true'):
             for model in apps.get_models():
                 upgrade_verbose_name(model._meta)
                 upgrade_plural(model._meta)
