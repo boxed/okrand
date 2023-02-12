@@ -36,12 +36,16 @@ class OkrandException(Exception):
     pass
 
 
-config_parser = ConfigParser()
-config_parser.read('setup.cfg')
-try:
-    config = dict(config_parser.items('tool:okrand'))
-except NoSectionError:
-    config = {}
+def read_config(filename='setup.cfg'):
+    config_parser = ConfigParser()
+    config_parser.read(filename)
+    try:
+        return dict(config_parser.items('tool:okrand'))
+    except NoSectionError:
+        return {}
+
+
+config = read_config()
 
 
 def get_conf_list(name):
@@ -374,13 +378,15 @@ class UnknownSortException(OkrandException):
     pass
 
 
-def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
-    ignore_list = get_conf_list('ignore')
-    languages = get_conf_list('languages')
-    sort = config.get('sort', 'none').strip()
+def update_po_files(*, old_msgid_by_new_msgid=None, sort=None) -> UpdateResult:
+    if sort is None:
+        sort = config.get('sort', 'none').strip()
 
     if sort not in ('none', 'alphabetical'):
         raise UnknownSortException(f'Unknown sort configuration "{sort}"')
+
+    ignore_list = get_conf_list('ignore')
+    languages = get_conf_list('languages')
 
     strings = list(find_source_strings(ignore_list=ignore_list))
 

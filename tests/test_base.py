@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from django.apps import apps
 from django.utils.functional import Promise
@@ -19,9 +21,12 @@ from okrand import (
     parse_django_template,
     parse_js,
     parse_python,
+    read_config,
     String,
     translations_for_all_models,
     translations_for_model,
+    UnknownSortException,
+    update_po_files,
     UpdateResult,
 )
 from okrand.apps import (
@@ -481,3 +486,13 @@ def test_upgrade_plural_3():
     assert isinstance(f.verbose_name_plural, Promise)
     assert f.verbose_name_plural._okrand_original_string == generated_plural_string
     assert isinstance(f.verbose_name_plural._okrand_original_string, str)
+
+
+def test_read_config():
+    assert read_config('definitely_does_not_exist.cfg') == {}
+    assert read_config(Path('tests') / 'test_read_config_no_section.cfg') == {}
+
+
+def test_update_po_files_invalid_sort():
+    with pytest.raises(UnknownSortException):
+        update_po_files(sort='klingon lexicographical')
