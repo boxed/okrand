@@ -7,7 +7,10 @@ from tests.helpers import (
     req,
     staff_req,
 )
-from okrand.views import i18n
+from okrand.views import (
+    i18n,
+    strip_prefix,
+)
 
 
 def test_i18n_view(settings):
@@ -27,3 +30,10 @@ def test_admin(settings):
     all_models = Admin().all_models().as_view()
     content = all_models(staff_req('get')).content.decode()
     assert '>i18n</a>' in content
+
+
+def test_strip_prefix():
+    assert strip_prefix('foobar', prefix='foo') == 'bar'
+    assert strip_prefix('foobar', prefix='baz') == 'foobar'
+    with pytest.raises(AssertionError):
+        assert strip_prefix('foobar', prefix='baz', strict=True) == 'foobar'
