@@ -338,7 +338,7 @@ parse_function_by_extension = {
 
 
 def find_source_strings(ignore_list):
-    if get_conf_list('django_model_upgrade') in ('1', 'true'):
+    if get_conf('django_model_upgrade', '0') in ('1', 'true'):
         yield from translations_for_all_models()
 
     for root, dirs, files in walk_respecting_gitignore(settings.BASE_DIR):
@@ -406,7 +406,11 @@ def update_po_files(*, old_msgid_by_new_msgid=None) -> UpdateResult:
 
 
 def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None) -> UpdateResult:
-    po_file = pofile(Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po')
+    path = Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po'
+    if not path.exists():
+        return UpdateResult()
+
+    po_file = pofile(str(path))
 
     result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
 

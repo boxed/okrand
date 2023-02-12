@@ -1,6 +1,7 @@
 import pytest
 from django.http import Http404
 from iommi import render_if_needed
+from iommi.admin import Admin
 
 from tests.helpers import (
     req,
@@ -18,4 +19,11 @@ def test_i18n_view(settings):
 
     settings.DEBUG = True
     request = staff_req('post', **{'-submit': ''})
-    response = render_if_needed(request=request, response=i18n(request=request))
+    render_if_needed(request=request, response=i18n(request=request))
+
+
+def test_admin(settings):
+    settings.DEBUG = True
+    all_models = Admin().all_models().as_view()
+    content = all_models(staff_req('get')).content.decode()
+    assert '>i18n</a>' in content

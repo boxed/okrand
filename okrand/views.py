@@ -129,7 +129,7 @@ def i18n(request):
     if path.exists():
         po = polib.pofile(str(path))
     else:
-        po = polib.pofile('')
+        po = polib.POFile()
 
     def process(m):
         m.problems = []
