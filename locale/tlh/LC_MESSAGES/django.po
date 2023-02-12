@@ -1,0 +1,6 @@
+#
+msgid ""
+msgstr ""
+
+#~ msgid "success"
+#~ msgstr "Qapla'"

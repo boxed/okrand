@@ -26,6 +26,7 @@ from okrand import (
     translations_for_all_models,
     translations_for_model,
     UnknownSortException,
+    update_language,
     update_po_files,
     UpdateResult,
 )
@@ -496,3 +497,10 @@ def test_read_config():
 def test_update_po_files_invalid_sort():
     with pytest.raises(UnknownSortException):
         update_po_files(sort='klingon lexicographical')
+
+
+def test_update_language(monkeypatch):
+    result = update_language(language_code='tlh', strings=[], sort='alphabetical')
+    assert result.new_strings == []
+    assert result.new_strings == []
+    assert result.previously_obsolete_strings == ['success']
