@@ -1,4 +1,7 @@
 import os
+
+from django.utils.translation import gettext_lazy
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 # These overly specific paths are for jinja2
@@ -30,6 +33,13 @@ DATABASES = {
 }
 
 USE_TZ = False
+
+LANGUAGES = [
+    ('sv', gettext_lazy('Swedish')),
+    ('en', gettext_lazy('English')),
+    ('tlh', gettext_lazy('Klingon')),
+]
+
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.UnsaltedMD5PasswordHasher',

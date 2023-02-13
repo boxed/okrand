@@ -2,5 +2,129 @@
 msgid ""
 msgstr ""
 
+msgid "permission"
+msgid_plural "permissions"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "ID"
+msgstr ""
+
+msgid "name"
+msgstr ""
+
+msgid "content type"
+msgid_plural "content types"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "codename"
+msgstr ""
+
+msgid "group"
+msgid_plural "groups"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "permissions"
+msgstr ""
+
+msgid "user"
+msgid_plural "users"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "password"
+msgstr ""
+
+msgid "last login"
+msgstr ""
+
+msgid "superuser status"
+msgstr ""
+
+msgid "username"
+msgstr ""
+
+msgid "first name"
+msgstr ""
+
+msgid "last name"
+msgstr ""
+
+msgid "email address"
+msgstr ""
+
+msgid "staff status"
+msgstr ""
+
+msgid "active"
+msgstr ""
+
+msgid "date joined"
+msgstr ""
+
+msgid "groups"
+msgstr ""
+
+msgid "user permissions"
+msgstr ""
+
+msgid "app label"
+msgstr ""
+
+msgid "python model class name"
+msgstr ""
+
+msgid "session"
+msgid_plural "sessions"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "session key"
+msgstr ""
+
+msgid "session data"
+msgstr ""
+
+msgid "expire date"
+msgstr ""
+
+msgid "no meta no explicit verbose name"
+msgid_plural "no meta no explicit verbose names"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "field"
+msgstr ""
+
+msgid "explicit"
+msgstr ""
+
+msgid "field explicit"
+msgstr ""
+
+msgid "with meta and only plural verbose name"
+msgid_plural "explicit"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "upgraded"
+msgid_plural "upgraded plural"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "upgraded field"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "Klingon"
+msgstr ""
+
 #~ msgid "success"
 #~ msgstr "Qapla'"

@@ -3,22 +3,29 @@ from pathlib import Path
 
 import polib
 from django.conf import settings
+from django.conf.locale import LANG_INFO
 from django.http import (
     Http404,
     HttpResponseRedirect,
 )
+from django.template import Template
 from django.utils.translation import activate
 from django.views.i18n import JavaScriptCatalog
 from iommi import (
     Column,
     Field,
     Form,
+    html,
     Page,
     Table,
 )
 from iommi.debug import src_debug_url_builder
 
-from okrand import update_po_files
+from okrand import (
+    get_or_create_pofile,
+    update_po_files,
+    UpdateResult,
+)
 
 
 def strip_prefix(s, *, prefix, strict=False):
@@ -31,6 +38,8 @@ def strip_prefix(s, *, prefix, strict=False):
 def i18n(request):
     if not request.user.is_superuser or not settings.DEBUG:
         raise Http404()
+
+    language = request.GET.get('language', settings.LANGUAGE_CODE)
 
     import sys
     from django.apps import apps
@@ -80,8 +89,6 @@ def i18n(request):
     with open(Path(settings.BASE_DIR) / '.gitignore') as f:
         gitignore = [x for x in f.read().split('\n') if x]
 
-    # TODO: hardcoded language is wrong
-    language = 'sv'
     js_catalog_output = None
     if hasattr(settings, 'OKRAND_STATIC_PATH'):
         js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language}_i18n.js')
@@ -94,7 +101,7 @@ def i18n(request):
     potential_rename_prefix = 'potential_rename-'
     if request.method == 'GET':
         # Otherwise we'll do this twice on POST
-        update_po_result = update_po_files()
+        update_po_result = update_po_files(languages=[language])
 
         if update_po_result.new_strings and update_po_result.newly_obsolete_strings:
             potential_rename_fields = {
@@ -105,6 +112,8 @@ def i18n(request):
                 )
                 for s in update_po_result.new_strings
             }
+    else:
+        update_po_result = UpdateResult()
 
     def save_potential_renames(form, **_):
         # TODO: validate that two strings aren't set to the same target string
@@ -125,11 +134,10 @@ def i18n(request):
         ),
     )
 
-    path = Path(settings.BASE_DIR) / 'locale' / language / 'LC_MESSAGES' / 'django.po'
-    if path.exists():
-        po = polib.pofile(str(path))
-    else:
-        po = polib.POFile()
+    po, created = get_or_create_pofile(language)
+    if created:
+        for x in update_po_result.new_strings:
+            po.append(polib.POEntry(msgid=x))
 
     def process(m):
         m.problems = []
@@ -166,6 +174,8 @@ def i18n(request):
                 m.msgstr = field.value
                 # Remove fuzzy flag
                 m.flags = [x for x in m.flags if x != 'fuzzy']
+
+        Path(po.fpath).parent.mkdir(parents=True, exist_ok=True)
         po.save()
 
         from django.core import management
@@ -176,7 +186,7 @@ def i18n(request):
                 activate(language)
                 f.write(JavaScriptCatalog().get(request, domain='django').content)
 
-        return HttpResponseRedirect('.')
+        return HttpResponseRedirect(f'.?language={language}')
 
     save_button = dict(actions__submit=dict(display_name='Save', post_handler=save))
 
@@ -207,8 +217,25 @@ def i18n(request):
             header__template = None
 
     return Page(
-        title='Swedish',
+        title=LANG_INFO.get(language, {}).get('name_local', language),
         parts=dict(
+            languages=html.div(
+                template=Template('''
+                {% load i18n %}
+                
+                {% get_available_languages as languages %}
+                                            
+                {% for lang_code, lang_name in languages %}
+                    <a href="?language={{ lang_code }}">{{ lang_code }}</a>
+                {% endfor %}
+                
+                <p>
+                    Set <code>settings.LANGUAGES</code> to restrict the list of languages.
+                </p>
+            
+                ''')
+            ),
+
             potential_renames=potential_renames_form,
 
             untranslated=Form(

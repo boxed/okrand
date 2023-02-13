@@ -29,6 +29,7 @@ from gitignorefile import Cache
 from polib import (
     POEntry,
     pofile,
+    POFile,
 )
 
 
@@ -378,7 +379,7 @@ class UnknownSortException(OkrandException):
     pass
 
 
-def update_po_files(*, old_msgid_by_new_msgid=None, sort=None) -> UpdateResult:
+def update_po_files(*, old_msgid_by_new_msgid=None, sort=None, languages=None) -> UpdateResult:
     if sort is None:
         sort = config.get('sort', 'none').strip()
 
@@ -386,7 +387,6 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None) -> UpdateResult:
         raise UnknownSortException(f'Unknown sort configuration "{sort}"')
 
     ignore_list = get_conf_list('ignore')
-    languages = get_conf_list('languages')
 
     strings = list(find_source_strings(ignore_list=ignore_list))
 
@@ -397,6 +397,9 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None) -> UpdateResult:
         f.name: {}
         for f in result_fields
     }
+
+    if languages is None:
+        languages = [k for k, v in settings.LANGUAGES]
 
     for language_code in languages:
         r = update_language(language_code=language_code, strings=strings, sort=sort, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
@@ -411,19 +414,28 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None) -> UpdateResult:
     )
 
 
-def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None) -> UpdateResult:
-    path = Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po'
-    if not path.exists():
-        return UpdateResult()
+def get_or_create_pofile(language):
+    path = Path(settings.BASE_DIR) / 'locale' / language / 'LC_MESSAGES' / 'django.po'
+    if path.exists():
+        return pofile(str(path)), False
+    else:
+        po = POFile()
+        po.fpath = str(path)
+        return po, True
 
-    po_file = pofile(str(path))
+
+def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None) -> UpdateResult:
+    po_file, _ = get_or_create_pofile(language_code)
 
     result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
 
     if sort == 'alphabetical':
         po_file.sort(key=lambda x: x.msgid)
 
-    po_file.save()
+    try:
+        po_file.save()
+    except FileNotFoundError as e:
+        print(e)
 
     return result
 

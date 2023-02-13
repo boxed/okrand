@@ -65,18 +65,14 @@ Configuration
 
 In ``setup.cfg`` you set:
 
- - languages used
  - additional ignore rules beyond ``.gitignore``. These are regexes for the full path.
  - sorting: none (default), alphabetical
  - if the django model upgrade is enabled
 
+
 .. code-block::
 
     [tool:okrand]
-    languages=
-        sv
-        fr
-        de
     ignore=
         .*some_annoying_path.*
     sort=alphabetical
