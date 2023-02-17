@@ -32,8 +32,8 @@ So concretely this model:
         isbn = CharField(verbose_name=_('ISBN'))
 
         class Meta:
-            verbose_name = _('author')
-            verbose_name = _('authors')
+            verbose_name = _('book')
+            verbose_name = _('books')
 
 Can now be changed to the more natural:
 
