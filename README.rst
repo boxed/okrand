@@ -49,9 +49,9 @@ Note that I don't need to wrap the ``verbose_name`` in a `gettext_lazy` call any
 Installation
 ============
 
-Add `okrand` to `INSTALLED_APP`.
+First ``pip install okrand``, then add ``okrand`` to ``INSTALLED_APPS``.
 
-Add `OKRAND_STATIC_PATH` to settings, pointing to where Okrand should write the JavaScript catalog files. Typically something like:
+Add ``OKRAND_STATIC_PATH`` to settings, pointing to where Okrand should write the JavaScript catalog files. Typically something like:
 
 .. code-block:: python
 
