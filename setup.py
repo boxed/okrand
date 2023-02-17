@@ -80,6 +80,7 @@ setup(
     version=read_version(),
     description='Okrand is an internationalization/translation tool for Django',
     long_description=readme,
+    long_description_content_type='text/markdown',
     author='Anders Hovmöller',
     author_email='boxed@killingar.net',
     url='https://github.com/boxed/okrand',
