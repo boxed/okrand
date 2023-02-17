@@ -85,7 +85,7 @@ setup(
     url='https://github.com/boxed/okrand',
     packages=['okrand'],
     include_package_data=True,
-    install_requires=['Django >= 3.0'] + read_reqs('requirements.txt'),
+    install_requires=read_reqs('requirements.txt'),
     license="BSD",
     zip_safe=False,
     keywords='okrand',

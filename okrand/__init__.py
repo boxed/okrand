@@ -26,7 +26,7 @@ from django.templatetags.i18n import (
 )
 from django.utils.functional import Promise
 from gitignorefile import Cache
-from polib import (
+from okrand._vendored.polib import (
     POEntry,
     pofile,
     POFile,

@@ -9,7 +9,7 @@ from django.utils.translation import (
     gettext_lazy,
     trans_real,
 )
-from polib import (
+from okrand._vendored.polib import (
     POEntry,
     POFile,
 )

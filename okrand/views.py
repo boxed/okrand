@@ -1,7 +1,7 @@
 import inspect
 from pathlib import Path
 
-import polib
+from okrand._vendored import polib
 from django.conf import settings
 from django.conf.locale import LANG_INFO
 from django.http import (
