@@ -131,13 +131,15 @@ def test__update_language():
         String(
             msgid='foo',
             translation_function='gettext',
+            domain='django',
         ),
         String(
             msgid='bar',
             translation_function='gettext',
+            domain='django',
         ),
     ]
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult(new_strings=['foo', 'bar'])
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(new_strings=['foo', 'bar'])
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -151,10 +153,11 @@ def test__update_language():
     strings.append(
         String(
             msgid='baz',
-            translation_function='gettext'
+            translation_function='gettext',
+            domain='django',
         )
     )
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult(new_strings=['baz'])
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(new_strings=['baz'])
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -169,7 +172,7 @@ def test__update_language():
 
     # deletion
     strings = strings[:-1]
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult(newly_obsolete_strings=['baz'])
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(newly_obsolete_strings=['baz'])
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -183,7 +186,7 @@ def test__update_language():
         )
     ]
 
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult(previously_obsolete_strings=['baz'])
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(previously_obsolete_strings=['baz'])
 
 
 def test__update_language_plural_changed():
@@ -193,9 +196,10 @@ def test__update_language_plural_changed():
             msgid='foo',
             msgid_plural='foos',
             translation_function='gettext',
+            domain='django',
         ),
     ]
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult(new_strings=['foo'])
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(new_strings=['foo'])
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -212,9 +216,10 @@ def test__update_language_plural_changed():
             msgid='foo',
             msgid_plural='foos updated',
             translation_function='gettext',
+            domain='django',
         ),
     ]
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult()
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult()
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -242,13 +247,15 @@ def test__update_language_singular_changed():
         String(
             msgid='new',
             translation_function='gettext',
+            domain='django',
         ),
         String(
             msgid='new 2',
             translation_function='gettext',
+            domain='django',
         ),
     ]
-    result = _update_language(po_file=po_file, strings=strings)
+    result = _update_language(po_file=po_file, strings=strings, domain='django')
     assert len(result.newly_obsolete_strings) == 2 and len(result.new_strings) == 2
 
     # assert that the data is unchanged!
@@ -258,10 +265,15 @@ def test__update_language_singular_changed():
     ]
 
     # Now mark a couple as the same
-    assert _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid={
-        'new': 'old',  # "new" is same as "old"
-        'new 2': None,  # "new 2" is truly new, not a renamed string
-    }) == UpdateResult(
+    assert _update_language(
+        po_file=po_file,
+        strings=strings,
+        old_msgid_by_new_msgid={
+            'new': 'old',  # "new" is same as "old"
+            'new 2': None,  # "new 2" is truly new, not a renamed string
+        },
+        domain='django',
+    ) == UpdateResult(
         newly_obsolete_strings=['old 2']
     )
     assert list(po_file) == [
@@ -289,9 +301,10 @@ def test__update_language_unmark_obsolete_when_found_again():
         String(
             msgid='foo',
             translation_function='gettext',
+            domain='django',
         ),
     ]
-    assert _update_language(po_file=po_file, strings=strings) == UpdateResult()
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult()
     assert list(po_file) == [
         POEntry(
             msgid='foo',
@@ -300,7 +313,12 @@ def test__update_language_unmark_obsolete_when_found_again():
 
 
 def test_normalization():
-    s = String(msgid='foo\r\n', msgid_plural='bar\r\n', translation_function='gettext')
+    s = String(
+        msgid='foo\r\n',
+        msgid_plural='bar\r\n',
+        translation_function='gettext',
+        domain='django',
+    )
     assert s.msgid == 'foo\n'
     assert s.msgid_plural == 'bar\n'
 
@@ -317,6 +335,7 @@ def test_create_implicit_verbose_name_for_models():
 pk_string = String(
     msgid='ID',
     translation_function='gettext',
+    domain='django',
 )
 
 
@@ -329,11 +348,13 @@ pk_string = String(
                     msgid='no meta no explicit verbose name',
                     translation_function='gettext',
                     msgid_plural='no meta no explicit verbose names',
+                    domain='django',
                 ),
                 pk_string,
                 String(
                     msgid='field',
                     translation_function='gettext',
+                    domain='django',
                 ),
             ]
         ),
@@ -343,11 +364,13 @@ pk_string = String(
                     msgid='explicit',
                     translation_function='gettext',
                     msgid_plural='explicits',
+                    domain='django',
                 ),
                 pk_string,
                 String(
                     msgid='field explicit',
                     translation_function='gettext',
+                    domain='django',
                 ),
             ]
         ),
@@ -357,11 +380,13 @@ pk_string = String(
                     msgid='with meta and only plural verbose name',
                     translation_function='gettext',
                     msgid_plural='explicit',
+                    domain='django',
                 ),
                 pk_string,
                 String(
                     msgid='field explicit',
                     translation_function='gettext',
+                    domain='django',
                 ),
             ]
         ),
@@ -371,11 +396,13 @@ pk_string = String(
                     msgid='upgraded',
                     translation_function='gettext',
                     msgid_plural='upgraded plural',
+                    domain='django',
                 ),
                 pk_string,
                 String(
                     msgid='upgraded field',
                     translation_function='gettext',
+                    domain='django',
                 ),
             ]
         ),
@@ -500,7 +527,9 @@ def test_update_po_files_invalid_sort():
 
 
 def test_update_language(monkeypatch):
-    result = update_language(language_code='tlh', strings=[], sort='alphabetical')
-    assert result.new_strings == []
-    assert result.new_strings == []
-    assert result.previously_obsolete_strings == ['success']
+    for result in update_language(language_code='tlh', strings=[], sort='alphabetical'):
+        if result.domain != 'django':
+            continue
+        assert result.new_strings == []
+        assert result.new_strings == []
+        assert result.previously_obsolete_strings == ['success']

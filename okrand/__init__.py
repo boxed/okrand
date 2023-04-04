@@ -1,4 +1,4 @@
-__version__ = '1.0.1'
+__version__ = '1.1.0'
 
 import ast
 import os
@@ -75,6 +75,7 @@ def _translations_for_model_only(model):
             msgid=verbose_name,
             msgid_plural=verbose_name_plural,
             translation_function='gettext',
+            domain='django',
         )
 
 
@@ -86,6 +87,7 @@ def _translations_for_model_fields(model):
             yield String(
                 msgid=verbose_name,
                 translation_function='gettext',
+                domain='django',
             )
 
 
@@ -112,13 +114,14 @@ gettext_synonyms = {
 
 @dataclass(kw_only=True, frozen=True)
 class _String:
+    domain: str
     msgid: str
     translation_function: str
     msgid_plural: str = None
     context: str = ''
 
 
-def String(*, msgid, translation_function, msgid_plural=None, context=''):
+def String(*, msgid, translation_function, msgid_plural=None, context='', domain):
     assert msgid is not None
     assert not isinstance(msgid, Promise)
     assert not isinstance(msgid_plural, Promise)
@@ -127,6 +130,7 @@ def String(*, msgid, translation_function, msgid_plural=None, context=''):
         translation_function=translation_function,
         msgid_plural=normalize(msgid_plural),
         context=context,
+        domain=domain,
     )
 
 
@@ -159,18 +163,21 @@ def parse_python(content):
                 yield String(
                     msgid=node.args[0].value,
                     translation_function=func,
+                    domain='django',
                 )
             elif func == 'pgettext':
                 yield String(
                     msgid=node.args[1].value,
                     translation_function=func,
                     context=node.args[0].value,
+                    domain='django',
                 )
             elif func == 'ngettext':
                 yield String(
                     msgid=node.args[0].value,
                     translation_function=func,
                     msgid_plural=node.args[1].value,
+                    domain='django',
                 )
             elif func == 'npgettext':
                 context = node.args[0].value
@@ -179,6 +186,7 @@ def parse_python(content):
                     translation_function=func,
                     context=context,
                     msgid_plural=node.args[2].value,
+                    domain='django',
                 )
             else:  # pragma: no cover
                 assert False, f'unknown gettext flavor {func}'
@@ -241,6 +249,44 @@ find_string_regex = r'''(?x)
     '''
 
 
+# language=pythonregexp
+ml_languages_find_string_regex = r'''(?x) 
+    \b     # word boundary
+    (?P<func>
+        gettext |
+        ngettext |
+        pgettext |
+        npgettext |
+        _ 
+    )
+    \s+
+    (?<!\\)
+    (?P<quote>["'])  
+    (?P<string>.*?)
+    (?<!\\)      # not the escaped quote
+    (?P=quote)   # same quote as we started with
+
+    # these two arguments are the same regex as above, plus the handling of comma
+    (?P<second_argument>
+        \s*,\s*
+        (?<!\\)
+        (?P<quote2>["'])
+        (?P<string2>.*?)
+        (?<!\\)
+        (?P=quote2)
+    )?
+
+    (?P<third_argument>
+        \s*,\s*
+        (?<!\\)
+        (?P<quote3>["'])
+        (?P<string3>.*?)
+        (?<!\\)
+        (?P=quote3)
+    )?
+    '''
+
+
 def parse_js(content):
     # I would like to have a proper JS parser here instead of a regex, but I couldn't find one that I could use in a reasonable way
     # An idea is to use @babel/parse to parse the file and dump the strings. But this would make node and babel a dependency. This is how far I got before I decided to stop:
@@ -256,18 +302,21 @@ def parse_js(content):
             yield String(
                 msgid=s,
                 translation_function=func,
+                domain='djangojs',
             )
         elif func == 'pgettext':
             yield String(
                 msgid=m.groupdict()['string2'],
                 translation_function=func,
                 context=m.groupdict()['string'],
+                domain='djangojs',
             )
         elif func == 'ngettext':
             yield String(
                 msgid=m.groupdict()['string'],
                 translation_function=func,
                 msgid_plural=m.groupdict()['string2'],
+                domain='djangojs',
             )
         elif func == 'npgettext':
             yield String(
@@ -275,6 +324,44 @@ def parse_js(content):
                 translation_function=func,
                 context=s,
                 msgid_plural=m.groupdict()['string3'],
+                domain='djangojs',
+            )
+        else:  # pragma: no cover
+            assert False, f'unknown gettext flavor {func}'
+
+
+def parse_elm(content):
+    for m in re.finditer(ml_languages_find_string_regex, content):
+        s = m.groupdict()['string']
+        func = normalize_func(m.groupdict()['func'])
+
+        if func == 'gettext':
+            yield String(
+                msgid=s,
+                translation_function=func,
+                domain='djangojs',
+            )
+        elif func == 'pgettext':
+            yield String(
+                msgid=m.groupdict()['string2'],
+                translation_function=func,
+                context=m.groupdict()['string'],
+                domain='djangojs',
+            )
+        elif func == 'ngettext':
+            yield String(
+                msgid=m.groupdict()['string'],
+                translation_function=func,
+                msgid_plural=m.groupdict()['string2'],
+                domain='djangojs',
+            )
+        elif func == 'npgettext':
+            yield String(
+                msgid=m.groupdict()['string2'],
+                translation_function=func,
+                context=s,
+                msgid_plural=m.groupdict()['string3'],
+                domain='djangojs',
             )
         else:  # pragma: no cover
             assert False, f'unknown gettext flavor {func}'
@@ -306,6 +393,7 @@ def parse_django_template(content):
             yield String(
                 msgid=node.filter_expression.var.literal,
                 translation_function='{% trans %}',
+                domain='django',
             )
         elif isinstance(node, BlockTranslateNode):
             if node.plural:
@@ -316,6 +404,7 @@ def parse_django_template(content):
                 msgid=extract_string_from_blocktrans_tokens(node.singular),
                 msgid_plural=msgid_plural,
                 translation_function='{% blocktrans %}',
+                domain='django',
             )
 
         for child_nodelist in node.child_nodelists:
@@ -339,6 +428,12 @@ parse_function_by_extension = {
     '.html': parse_django_template,
     '.vue': parse_js,
     '.js': parse_js,
+    '.elm': parse_elm,
+}
+
+domains = {
+    'django',
+    'djangojs',
 }
 
 
@@ -363,8 +458,6 @@ def find_source_strings(ignore_list):
             yield from parse_function_by_extension[extension](content)
 
 
-domain = 'django'
-
 POEntry.__repr__ = lambda self: f'<POEntry: {self.msgid}{" (obsolete)" if self.obsolete else ""}>'
 
 
@@ -373,6 +466,7 @@ class UpdateResult:
     new_strings: List[str] = field(default_factory=list)
     newly_obsolete_strings: List[str] = field(default_factory=list)
     previously_obsolete_strings: List[str] = field(default_factory=list)
+    domain: str = field(default='django')
 
 
 class UnknownSortException(OkrandException):
@@ -402,9 +496,9 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None, languages=None) -
         languages = [k for k, v in settings.LANGUAGES]
 
     for language_code in languages:
-        r = update_language(language_code=language_code, strings=strings, sort=sort, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
-        for f in result_fields:
-            result_totals[f.name].update({x: None for x in getattr(r, f.name)})
+        for r in update_language(language_code=language_code, strings=strings, sort=sort, old_msgid_by_new_msgid=old_msgid_by_new_msgid):
+            for f in result_fields:
+                result_totals[f.name].update({x: None for x in getattr(r, f.name)})
 
     return UpdateResult(
         **{
@@ -414,8 +508,8 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None, languages=None) -
     )
 
 
-def get_or_create_pofile(language):
-    path = Path(settings.BASE_DIR) / 'locale' / language / 'LC_MESSAGES' / 'django.po'
+def get_or_create_pofile(*, language_code, domain):
+    path = Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po'
     if path.exists():
         return pofile(str(path)), False
     else:
@@ -424,20 +518,21 @@ def get_or_create_pofile(language):
         return po, True
 
 
-def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None) -> UpdateResult:
-    po_file, _ = get_or_create_pofile(language_code)
+def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None):
+    for domain in domains:
+        po_file, _ = get_or_create_pofile(language_code=language_code, domain=domain)
 
-    result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid)
+        result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid, domain=domain)
 
-    if sort == 'alphabetical':
-        po_file.sort(key=lambda x: x.msgid)
+        if sort == 'alphabetical':
+            po_file.sort(key=lambda x: x.msgid)
 
-    try:
-        po_file.save()
-    except FileNotFoundError as e:
-        print(e)
+        try:
+            po_file.save()
+        except FileNotFoundError as e:
+            print(e)
 
-    return result
+        yield result
 
 
 def normalize(msgid):
@@ -447,7 +542,7 @@ def normalize(msgid):
         return msgid
 
 
-def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> UpdateResult:
+def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -> UpdateResult:
     for po_entry in po_file:
         if po_entry.msgid:
             po_entry.msgid = normalize(po_entry.msgid)
@@ -458,6 +553,7 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> Update
     string_by_msgid = {
         s.msgid: s
         for s in strings
+        if s.domain == domain
     }
 
     po_entry_by_msgid = {
@@ -557,4 +653,5 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None) -> Update
         new_strings=[x.msgid for x in new_strings],
         newly_obsolete_strings=newly_obsolete_strings,
         previously_obsolete_strings=[x.msgid for x in obsolete_po_entries if x.msgid not in newly_obsolete_strings_set],
+        domain=domain,
     )

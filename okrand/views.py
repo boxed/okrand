@@ -39,7 +39,8 @@ def i18n(request):
     if not request.user.is_superuser or not settings.DEBUG:
         raise Http404()
 
-    language = request.GET.get('language', settings.LANGUAGE_CODE)
+    language_code = request.GET.get('language', settings.LANGUAGE_CODE)
+    domain = request.GET.get('domain', 'django')
 
     import sys
     from django.apps import apps
@@ -91,7 +92,7 @@ def i18n(request):
 
     js_catalog_output = None
     if hasattr(settings, 'OKRAND_STATIC_PATH'):
-        js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language}_i18n.js')
+        js_catalog_output = (settings.OKRAND_STATIC_PATH / f'{language_code}_i18n.js')
         ignore = gitignore + [
             str(js_catalog_output),
         ]
@@ -101,7 +102,7 @@ def i18n(request):
     potential_rename_prefix = 'potential_rename-'
     if request.method == 'GET':
         # Otherwise we'll do this twice on POST
-        update_po_result = update_po_files(languages=[language])
+        update_po_result = update_po_files(languages=[language_code])
 
         if update_po_result.new_strings and update_po_result.newly_obsolete_strings:
             potential_rename_fields = {
@@ -134,7 +135,7 @@ def i18n(request):
         ),
     )
 
-    po, created = get_or_create_pofile(language)
+    po, created = get_or_create_pofile(language_code=language_code, domain=domain)
     if created:
         for x in update_po_result.new_strings:
             po.append(polib.POEntry(msgid=x))
@@ -183,10 +184,10 @@ def i18n(request):
 
         if js_catalog_output:
             with open(js_catalog_output, 'wb') as f:
-                activate(language)
-                f.write(JavaScriptCatalog().get(request, domain='django').content)
+                activate(language_code)
+                f.write(JavaScriptCatalog().get(request).content)
 
-        return HttpResponseRedirect(f'.?language={language}')
+        return HttpResponseRedirect(f'.?language={language_code}&domain={domain}')
 
     save_button = dict(actions__submit=dict(display_name='Save', post_handler=save))
 
@@ -217,7 +218,7 @@ def i18n(request):
             header__template = None
 
     return Page(
-        title=LANG_INFO.get(language, {}).get('name_local', language),
+        title=LANG_INFO.get(language_code, {}).get('name_local', language_code),
         parts=dict(
             languages=html.div(
                 template=Template('''
@@ -228,6 +229,16 @@ def i18n(request):
                 {% for lang_code, lang_name in languages %}
                     <a href="?language={{ lang_code }}">{{ lang_code }}</a>
                 {% endfor %}
+
+                <p></p>
+                
+                JS: 
+                {% for lang_code, lang_name in languages %}
+                    <a href="?language={{ lang_code }}&domain=djangojs">{{ lang_code }}</a>
+                {% endfor %}
+
+                <p></p>
+                
                 
                 <p>
                     Set <code>settings.LANGUAGES</code> to restrict the list of languages.
