@@ -274,7 +274,8 @@ def test__update_language_singular_changed():
         },
         domain='django',
     ) == UpdateResult(
-        newly_obsolete_strings=['old 2']
+        new_strings=['new 2'],
+        previously_obsolete_strings=['old 2'],
     )
     assert list(po_file) == [
         POEntry(

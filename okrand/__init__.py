@@ -568,7 +568,9 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
         }
 
         for new_msgid, old_msgid in normalized_old_msgid_by_new_msgid.items():
-            assert new_msgid in string_by_msgid
+            if not old_msgid:
+                continue
+            assert new_msgid in string_by_msgid, new_msgid
             if not old_msgid:
                 po_entry_by_msgid[new_msgid] = POEntry(
                     msgid=new_msgid,
@@ -647,7 +649,13 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
             if 'fuzzy' not in po_entry.flags:
                 po_entry.flags.append('fuzzy')
 
-    newly_obsolete_strings = [x.msgid for x in newly_obsolete_po_entries]
+    if old_msgid_by_new_msgid is not None:
+        newly_obsolete_strings = []
+        for x in newly_obsolete_po_entries:
+            x.obsolete = 1
+    else:
+        newly_obsolete_strings = [x.msgid for x in newly_obsolete_po_entries]
+
     newly_obsolete_strings_set = set(newly_obsolete_strings)
     return UpdateResult(
         new_strings=[x.msgid for x in new_strings],
