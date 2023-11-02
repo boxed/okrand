@@ -1,5 +1,6 @@
 import inspect
 from pathlib import Path
+import re
 
 from okrand._vendored import polib
 from django.conf import settings
@@ -33,6 +34,10 @@ def strip_prefix(s, *, prefix, strict=False):
         return s[len(prefix):]
     assert strict is False, f"String '{s}' does not start with prefix '{prefix}'"
     return s
+
+
+def msgid_to_key(msgid):
+    return re.sub(r'[%_ ()\n]', '_', msgid).strip('_')
 
 
 def i18n(request):
@@ -158,17 +163,18 @@ def i18n(request):
     # Form conf from this point onwards
     def fields_from_items(items):
         return {
-            x.msgid: Field(
+            msgid_to_key(x.msgid): Field(
                 initial=x.msgstr,
                 display_name=x.msgid,
                 help_text='\n'.join(getattr(x, 'problems', [])),
+                extra__msgid=x.msgid,
             )
             for x in items
         }
 
     def save(form, **_):
         for field in form.fields.values():
-            m = po.find(field._name)
+            m = po.find(field.extra.msgid)
             if m is None:
                 continue
             if m.msgstr != field.value and field.value:
