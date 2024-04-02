@@ -562,7 +562,7 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
     }
 
     if old_msgid_by_new_msgid is not None:
-        old_msgid_by_new_msgid = {k: v for k, v in old_msgid_by_new_msgid.items() if v}
+        old_msgid_by_new_msgid = {k: v for k, v in old_msgid_by_new_msgid.items() if v is not None}
         if not old_msgid_by_new_msgid:
             old_msgid_by_new_msgid = None
 
