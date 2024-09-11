@@ -79,6 +79,22 @@ In ``setup.cfg`` you set:
     django_model_upgrade=1
 
 
+Installing the frontend
+=======================
+
+
+There is a built in web based frontend to okrand. To install it first `install iommi <https://docs.iommi.rocks/en/latest/getting_started.html>`_.
+
+Then add the following to your ``urls.py``:
+
+.. code-block:: python
+    from okrand.views import i18n
+
+    urlpatterns = [
+        path('i18n/', i18n),
+    ]
+
+
 What does "Okrand" mean?
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
