@@ -1,4 +1,4 @@
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 import ast
 import os
@@ -408,7 +408,7 @@ def parse_django_template(content):
             )
 
         for child_nodelist in node.child_nodelists:
-            nodelist = getattr(node, child_nodelist)
+            nodelist = getattr(node, child_nodelist, [])
             for n in nodelist:
                 yield from w(n)
 
