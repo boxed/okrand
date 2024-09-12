@@ -37,7 +37,10 @@ def strip_prefix(s, *, prefix, strict=False):
 
 
 def msgid_to_key(msgid):
-    return re.sub(r'[%_ ()\n]', '_', msgid).strip('_')
+    r = re.sub(r'[%_ ()\n]', '_', msgid).strip('_')
+    while '__' in r:
+        r = r.replace('__', '_')
+    return r
 
 
 def i18n(request):
@@ -66,6 +69,7 @@ def i18n(request):
         if is_in_project(model)
     ]
 
+    # TODO: missing verbose name check should not be done if django_model_upgrade is turned on
     from django.utils.functional import Promise
     missing_verbose_name = [
         x

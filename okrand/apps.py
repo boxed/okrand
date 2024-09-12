@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy
 
 from okrand import get_conf
 
+
 def get_args_from_proxy(proxy):
     args = getattr(proxy, '_args', None)
     if args is None:
