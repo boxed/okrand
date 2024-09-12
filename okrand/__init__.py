@@ -527,10 +527,9 @@ def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msg
         if sort == 'alphabetical':
             po_file.sort(key=lambda x: x.msgid)
 
-        try:
+        if po_file:
+            Path(po_file.fpath).parent.mkdir(parents=True, exist_ok=True)
             po_file.save()
-        except FileNotFoundError as e:
-            print(e)
 
         yield result
 

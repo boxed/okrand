@@ -182,8 +182,9 @@ def i18n(request):
                 # Remove fuzzy flag
                 m.flags = [x for x in m.flags if x != 'fuzzy']
 
-        Path(po.fpath).parent.mkdir(parents=True, exist_ok=True)
-        po.save()
+        if po:
+            Path(po.fpath).parent.mkdir(parents=True, exist_ok=True)
+            po.save()
 
         from django.core import management
         management.call_command('compilemessages', ignore=ignore)
