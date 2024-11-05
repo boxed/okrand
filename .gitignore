@@ -110,3 +110,4 @@ coverage.xml
 .testmondata
 
 .cache/pip
+locale/
