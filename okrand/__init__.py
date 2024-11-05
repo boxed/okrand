@@ -57,8 +57,21 @@ def get_conf(name, default=None):
     return config.get(name, default)
 
 
+def should_process_model(model, prefixes):
+    if not prefixes:
+        return True
+
+    for p in prefixes:
+        if (model.__module__ + '.' + model.__name__).startswith(p):
+            return True
+    return False
+
+
 def translations_for_all_models():
+    prefixes = get_conf_list('django_model_prefixes')
     for model in registry_apps.get_models():
+        if not should_process_model(model=model, prefixes=prefixes):
+            continue
         yield from translations_for_model(model)
 
 
@@ -70,10 +83,16 @@ def translations_for_model(model):
 def _translations_for_model_only(model):
     verbose_name = getattr(model._meta.verbose_name, '_okrand_original_string', None)
     verbose_name_plural = getattr(model._meta.verbose_name_plural, '_okrand_original_string', None)
-    if verbose_name is not None or verbose_name_plural is not None:
+    if verbose_name is not None:
         yield String(
             msgid=verbose_name,
-            msgid_plural=verbose_name_plural,
+            translation_function='gettext',
+            domain='django',
+        )
+
+    if verbose_name_plural is not None:
+        yield String(
+            msgid=verbose_name_plural,
             translation_function='gettext',
             domain='django',
         )

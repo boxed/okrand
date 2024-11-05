@@ -19,6 +19,8 @@ Turn this feature on in your ``setup.cfg``:
 
     [tool:okrand]
     django_model_upgrade=1
+    django_model_prefixes=
+        your_package.
 
 So concretely this model:
 
@@ -43,7 +45,7 @@ Can now be changed to the more natural:
         name = CharField()
         isbn = CharField(verbose_name='ISBN')
 
-Note that I don't need to wrap the ``verbose_name`` in a `gettext_lazy` call anymore.
+Note that you don't need to wrap the ``verbose_name`` in a `gettext_lazy` call anymore.
 
 
 Installation

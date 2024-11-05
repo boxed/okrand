@@ -166,24 +166,41 @@ def i18n(request):
 
     # Form conf from this point onwards
     def fields_from_items(items):
-        return {
-            msgid_to_key(x.msgid): Field(
-                initial=x.msgstr,
-                display_name=x.msgid,
-                help_text='\n'.join(getattr(x, 'problems', [])),
-                extra__msgid=x.msgid,
-            )
-            for x in items
-        }
+        result = {}
+        for x in items:
+            if x.msgstr_plural:
+                for k, v in x.msgstr_plural.items():
+                    result[f'{msgid_to_key(x.msgid)}${k}'] = Field(
+                        initial=v,
+                        display_name=x.msgid + f" (x{k+1})",
+                        help_text=f'number of items {k+1}',
+                        extra__msgid=x.msgid,
+                        extra__plural_index=k,
+                    )
+            else:
+                result[msgid_to_key(x.msgid)] = Field(
+                    initial=x.msgstr,
+                    display_name=x.msgid,
+                    help_text='\n'.join(getattr(x, 'problems', [])),
+                    extra__msgid=x.msgid,
+                    extra__plural_index=None,
+                )
+        return result
 
     def save(form, **_):
         for field in form.fields.values():
             m = po.find(field.extra.msgid)
             if m is None:
                 continue
+            remove_fuzzy = False
+            if field.extra.plural_index is not None and field.value:
+                m.msgstr_plural[field.extra.plural_index] = field.value
+
             if m.msgstr != field.value and field.value:
                 m.msgstr = field.value
-                # Remove fuzzy flag
+                remove_fuzzy = True
+
+            if remove_fuzzy:
                 m.flags = [x for x in m.flags if x != 'fuzzy']
 
         if po:
@@ -201,6 +218,12 @@ def i18n(request):
         return HttpResponseRedirect(f'.?language={language_code}&domain={domain}')
 
     save_button = dict(actions__submit=dict(display_name='Save', post_handler=save))
+
+    def is_translated(item):
+        if item.msgstr_plural:
+            return all([x.strip() for x in item.msgstr_plural.values()])
+        else:
+            return item.msgstr.strip()
 
     def code_url(row, **_):
         try:
@@ -262,7 +285,7 @@ def i18n(request):
 
             untranslated=Form(
                 title='Untranslated',
-                fields=fields_from_items(x for x in items if not x.msgstr.strip() and not x.obsolete),
+                fields=fields_from_items(x for x in items if not is_translated(x) and not x.obsolete),
                 **save_button,
             ),
 
