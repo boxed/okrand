@@ -1,6 +1,7 @@
 __version__ = '1.2.0'
 
 import ast
+import importlib
 import os
 import re
 from configparser import (
@@ -459,6 +460,11 @@ domains = {
 def find_source_strings(ignore_list):
     if get_conf('django_model_upgrade', '0') in ('1', 'true'):
         yield from translations_for_all_models()
+
+    for plugin in get_conf_list('find_source_strings_plugins'):
+        module_name, _, function_name = plugin.rpartition('.')
+        module = importlib.import_module(module_name)
+        yield from getattr(module, function_name)(ignore_list=ignore_list)
 
     for root, dirs, files in walk_respecting_gitignore(settings.BASE_DIR):
         for f in files:
