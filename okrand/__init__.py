@@ -1,4 +1,4 @@
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 import ast
 import importlib
@@ -443,6 +443,7 @@ def ignore_filename(full_path, *, ignore_list):
     return False
 
 
+# TODO: pluggable stuff here
 parse_function_by_extension = {
     '.py': parse_python,
     '.html': parse_django_template,

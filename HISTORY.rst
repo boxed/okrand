@@ -1,12 +1,19 @@
 Changelog
 =========
 
+1.3.0 (2024-11-06)
+~~~~~~~~~~~~~~~~~~
+
+* Plugin system for adding your own custom string collectors
+
+
 1.2.0 (2024-11-05)
 ~~~~~~~~~~~~~~~~~~
 
 * Fixed issue with handling of plural names for Django models
 
 * Added new config option `django_model_prefixes` to filter which models you want to translate
+
 
 1.1.2 (2024-09-11)
 ~~~~~~~~~~~~~~~~~~
