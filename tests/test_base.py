@@ -348,7 +348,11 @@ pk_string = String(
                 String(
                     msgid='no meta no explicit verbose name',
                     translation_function='gettext',
-                    msgid_plural='no meta no explicit verbose names',
+                    domain='django',
+                ),
+                String(
+                    msgid='no meta no explicit verbose names',
+                    translation_function='gettext',
                     domain='django',
                 ),
                 pk_string,
@@ -364,7 +368,11 @@ pk_string = String(
                 String(
                     msgid='explicit',
                     translation_function='gettext',
-                    msgid_plural='explicits',
+                    domain='django',
+                ),
+                String(
+                    msgid='explicits',
+                    translation_function='gettext',
                     domain='django',
                 ),
                 pk_string,
@@ -380,7 +388,11 @@ pk_string = String(
                 String(
                     msgid='with meta and only plural verbose name',
                     translation_function='gettext',
-                    msgid_plural='explicit',
+                    domain='django',
+                ),
+                String(
+                    msgid='explicit',
+                    translation_function='gettext',
                     domain='django',
                 ),
                 pk_string,
@@ -396,7 +408,11 @@ pk_string = String(
                 String(
                     msgid='upgraded',
                     translation_function='gettext',
-                    msgid_plural='upgraded plural',
+                    domain='django',
+                ),
+                String(
+                    msgid='upgraded plural',
+                    translation_function='gettext',
                     domain='django',
                 ),
                 pk_string,
