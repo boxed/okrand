@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.4.0 (2025-03-19)
+~~~~~~~~~~~~~~~~~~
+
+* Support `_('foo')` syntax inside Django templates
+
+
 1.3.0 (2024-11-06)
 ~~~~~~~~~~~~~~~~~~
 
