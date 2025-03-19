@@ -19,14 +19,20 @@ from typing import List
 from django.apps.registry import apps as registry_apps
 from django.conf import settings
 from django.template import Template
-from django.template.base import TokenType
-from django.template.loader_tags import IncludeNode
+from django.template.base import (
+    tag_re,
+    TokenType,
+)
+from django.template.loader_tags import (
+    IncludeNode,
+)
 from django.templatetags.i18n import (
     BlockTranslateNode,
     TranslateNode,
 )
 from django.utils.functional import Promise
 from gitignorefile import Cache
+
 from okrand._vendored.polib import (
     POEntry,
     pofile,
@@ -408,6 +414,17 @@ def parse_django_template(content):
     t = Template(content)
     t.child_nodelists = ("nodelist",)
 
+    translation_underscore_function = r'''_\(['"](.*)['"]\)'''
+
+    # Find `_()` calls in the template
+    for template_thing in re.finditer(tag_re, content):
+        for m in re.finditer(translation_underscore_function, template_thing.group(0)):
+            yield String(
+                msgid=m.group(1),
+                translation_function='template _()',
+                domain='django',
+            )
+
     def w(node):
         if isinstance(node, TranslateNode):
             yield String(
@@ -510,6 +527,7 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None, languages=None) -
 
     strings = list(find_source_strings(ignore_list=ignore_list))
 
+    # noinspection PyTypeChecker
     result_fields = fields(UpdateResult)
 
     # dicts as a poor man's ordered set

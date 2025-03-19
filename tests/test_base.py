@@ -70,6 +70,19 @@ def test_django_html():
     assert plural == {'plural %(y)s'}
 
 
+def test_django_html_underscore_function():
+    singular, plural = collect(parse_django_template(
+'''
+{% load i18n %}
+{{ _('foo') }}
+{% with x=_('bar') %}
+    {{ x }}
+{% endwith %}
+'''))
+
+    assert singular == {'foo', 'bar'}
+
+
 def test_python():
     singular, plural = collect(parse_python('''
 class Foo:
