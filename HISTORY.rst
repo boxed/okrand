@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.5.0 (2025-03-25)
+~~~~~~~~~~~~~~~~~~
+
+* Support for ignoring strings for translation
+
+
 1.4.0 (2025-03-19)
 ~~~~~~~~~~~~~~~~~~
 
