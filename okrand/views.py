@@ -21,6 +21,7 @@ from iommi import (
     Table,
 )
 from iommi.debug import src_debug_url_builder
+from iommi.form import save_nested_forms
 
 from okrand import (
     get_or_create_pofile,
@@ -168,30 +169,59 @@ def i18n(request):
     def fields_from_items(items):
         result = {}
         for x in items:
+            if 'ignore' in x.flags:
+                continue
             if x.msgstr_plural:
                 for k, v in x.msgstr_plural.items():
                     result[f'{msgid_to_key(x.msgid)}${k}'] = Field(
+                        group=x.msgid,
                         initial=v,
                         display_name=x.msgid + f" (x{k+1})",
                         help_text=f'number of items {k+1}',
+                        required=False,
                         extra__msgid=x.msgid,
                         extra__plural_index=k,
                     )
             else:
                 result[msgid_to_key(x.msgid)] = Field(
+                    group=x.msgid,
                     initial=x.msgstr,
                     display_name=x.msgid,
                     help_text='\n'.join(getattr(x, 'problems', [])),
+                    required=False,
                     extra__msgid=x.msgid,
                     extra__plural_index=None,
                 )
+            result[msgid_to_key(x.msgid) + '_ignore'] = Field.boolean(
+                group=x.msgid,
+                display_name='Ignore',
+                required=False,
+                extra__msgid=x.msgid,
+                extra__plural_index=None,
+                extra__ignore_flag=True,
+                input__attrs__style={
+                    'margin-left': '0',
+                    'position': 'unset',
+                    'margin-right': '0.5rem',
+                    'margin-top': '2.5rem',
+                },
+            )
         return result
 
     def save(form, **_):
+        if not form.fields:
+            return
+
         for field in form.fields.values():
             m = po.find(field.extra.msgid)
             if m is None:
                 continue
+
+            if 'ignore_flag' in field.extra and field.value:
+                if 'ignore' not in m.flags:
+                    m.flags.append('ignore')
+                continue
+
             remove_fuzzy = False
             if field.extra.plural_index is not None and field.value:
                 m.msgstr_plural[field.extra.plural_index] = field.value
@@ -251,9 +281,10 @@ def i18n(request):
         class Meta:
             header__template = None
 
-    return Page(
+    return Form(
         title=LANG_INFO.get(language_code, {}).get('name_local', language_code),
-        parts=dict(
+        actions__submit__post_handler=save_nested_forms,
+        fields=dict(
             languages=html.div(
                 template=Template('''
                 {% load i18n %}
@@ -301,20 +332,20 @@ def i18n(request):
                 **save_button,
             ),
 
-            missing_verbose_name=ClassSourceCodeReferenceTable(
-                title='Models with missing verbose_name',
-                rows=missing_verbose_name,
-            ),
+            # missing_verbose_name=ClassSourceCodeReferenceTable(
+            #     title='Models with missing verbose_name',
+            #     rows=missing_verbose_name,
+            # ),
 
-            missing_verbose_name_plural=ClassSourceCodeReferenceTable(
-                title='Models with missing verbose_name_plural',
-                rows=missing_verbose_name_plural,
-            ),
-
-            fields_with_missing_verbose_name=FieldSourceCodeReferenceTable(
-                title='Fields with missing verbose_name',
-                rows=fields_with_missing_verbose_name,
-            ),
+            # missing_verbose_name_plural=ClassSourceCodeReferenceTable(
+            #     title='Models with missing verbose_name_plural',
+            #     rows=missing_verbose_name_plural,
+            # ),
+            #
+            # fields_with_missing_verbose_name=FieldSourceCodeReferenceTable(
+            #     title='Fields with missing verbose_name',
+            #     rows=fields_with_missing_verbose_name,
+            # ),
 
             # all=Form(
             #     title='All',
