@@ -70,7 +70,8 @@ In ``setup.cfg`` you set:
  - additional ignore rules beyond ``.gitignore``. These are regexes for the full path.
  - sorting: none (default), alphabetical
  - if the django model upgrade is enabled
- - custom collector functions
+ - custom collector functions\
+ - turn off rename support
 
 
 .. code-block::
@@ -85,6 +86,7 @@ In ``setup.cfg`` you set:
         another_app.
     find_source_strings_plugins=
         your.module.function_name
+    renames=0
 
 
 Installing the frontend

@@ -24,6 +24,7 @@ from iommi.debug import src_debug_url_builder
 from iommi.form import save_nested_forms
 
 from okrand import (
+    get_conf,
     get_or_create_pofile,
     update_po_files,
     UpdateResult,
@@ -137,6 +138,7 @@ def i18n(request):
         return HttpResponseRedirect('.')
 
     potential_renames_form = Form(
+        include=bool(potential_rename_fields),
         title='Handle renames',
         fields=potential_rename_fields,
         actions__submit=dict(

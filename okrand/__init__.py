@@ -664,7 +664,7 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
         for po_entry in newly_obsolete_po_entries:
             po_entry.obsolete = True
 
-    if not newly_obsolete_po_entries:
+    if not newly_obsolete_po_entries or get_conf('renames', '1') in ('0', 'false'):
         for s in new_strings:
             data = dict(
                 msgid=s.msgid,
@@ -705,9 +705,11 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
         newly_obsolete_strings = [x.msgid for x in newly_obsolete_po_entries]
 
     newly_obsolete_strings_set = set(newly_obsolete_strings)
+    previously_obsolete_strings = [x.msgid for x in obsolete_po_entries if x.msgid not in newly_obsolete_strings_set]
+
     return UpdateResult(
         new_strings=[x.msgid for x in new_strings],
         newly_obsolete_strings=newly_obsolete_strings,
-        previously_obsolete_strings=[x.msgid for x in obsolete_po_entries if x.msgid not in newly_obsolete_strings_set],
+        previously_obsolete_strings=previously_obsolete_strings,
         domain=domain,
     )
