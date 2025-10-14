@@ -1,6 +1,13 @@
 Changelog
 =========
 
+1.5.1 (2025-10-14)
+~~~~~~~~~~~~~~~~~~
+
+* Avoid infinite reloads when using django-browser-reload
+
+* Option to turn off rename support, as this can often be more in the way than help. Set `renames=0` in the conf.
+
 1.5.0 (2025-03-25)
 ~~~~~~~~~~~~~~~~~~
 
