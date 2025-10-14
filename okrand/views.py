@@ -1,6 +1,7 @@
 import inspect
 from pathlib import Path
 import re
+from copy import deepcopy
 
 from okrand._vendored import polib
 from django.conf import settings
@@ -148,6 +149,7 @@ def i18n(request):
     )
 
     po, created = get_or_create_pofile(language_code=language_code, domain=domain)
+    po_orig = deepcopy(po)
     if created:
         for x in update_po_result.new_strings:
             po.append(polib.POEntry(msgid=x))
@@ -235,19 +237,19 @@ def i18n(request):
             if remove_fuzzy:
                 m.flags = [x for x in m.flags if x != 'fuzzy']
 
-        if po:
+        if po and po != po_orig:
             Path(po.fpath).parent.mkdir(parents=True, exist_ok=True)
             po.save()
 
         from django.core import management
         management.call_command('compilemessages', ignore=ignore)
 
-        if js_catalog_output:
+        if js_catalog_output and po and po != po_orig:
             with open(js_catalog_output, 'wb') as f:
                 activate(language_code)
                 f.write(JavaScriptCatalog().get(request).content)
 
-        return HttpResponseRedirect(f'.?language={language_code}&domain={domain}')
+        return HttpResponseRedirect('/')
 
     save_button = dict(actions__submit=dict(display_name='Save', post_handler=save))
 
