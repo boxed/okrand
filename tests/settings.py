@@ -41,6 +41,8 @@ LANGUAGES = [
 ]
 
 
+STATIC_URL = '/static/'
+
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.UnsaltedMD5PasswordHasher',
 ]

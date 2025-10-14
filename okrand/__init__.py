@@ -18,7 +18,10 @@ from typing import List
 
 from django.apps.registry import apps as registry_apps
 from django.conf import settings
-from django.template import Template
+from django.template import (
+    Origin,
+    Template,
+)
 from django.template.base import (
     tag_re,
     TokenType,
@@ -173,7 +176,7 @@ def normalize_func(func):
     return func
 
 
-def parse_python(content):
+def parse_python(content, full_path=None):
     t = ast.parse(content)
 
     def w(node):
@@ -313,7 +316,7 @@ ml_languages_find_string_regex = r'''(?x)
     '''
 
 
-def parse_js(content):
+def parse_js(content, full_path=None):
     # I would like to have a proper JS parser here instead of a regex, but I couldn't find one that I could use in a reasonable way
     # An idea is to use @babel/parse to parse the file and dump the strings. But this would make node and babel a dependency. This is how far I got before I decided to stop:
     # const fs = require('fs');
@@ -356,7 +359,7 @@ def parse_js(content):
             assert False, f'unknown gettext flavor {func}'
 
 
-def parse_elm(content):
+def parse_elm(content, full_path):
     for m in re.finditer(ml_languages_find_string_regex, content):
         s = m.groupdict()['string']
         func = normalize_func(m.groupdict()['func'])
@@ -410,8 +413,8 @@ def extract_string_from_blocktrans_tokens(tokens):
     return ''.join(result)
 
 
-def parse_django_template(content):
-    t = Template(content)
+def parse_django_template(content, full_path=None):
+    t = Template(content, origin=Origin(name=str(full_path), template_name=str(full_path)))
     t.child_nodelists = ("nodelist",)
 
     translation_underscore_function = r'''_\(['"](.*)['"]\)'''
@@ -498,7 +501,7 @@ def find_source_strings(ignore_list):
             with open(full_path) as file:
                 content = file.read()
 
-            yield from parse_function_by_extension[extension](content)
+            yield from parse_function_by_extension[extension](content, full_path=full_path)
 
 
 POEntry.__repr__ = lambda self: f'<POEntry: {self.msgid}{" (obsolete)" if self.obsolete else ""}>'
