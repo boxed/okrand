@@ -1,6 +1,15 @@
 Changelog
 =========
 
+
+1.6.1 (2025-12-17)
+~~~~~~~~~~~~~~~~~~
+
+* Fixed i18n iommi page to not crash when using gettext synonyms :)
+
+* New config options `pgettext_synonyms`, `ngettext_synonyms`, `npgettext_synonyms` to mirror `gettext_synonyms`.
+
+
 1.6.0 (2025-12-17)
 ~~~~~~~~~~~~~~~~~~
 
