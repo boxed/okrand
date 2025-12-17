@@ -128,7 +128,7 @@ def walk_respecting_gitignore(path):
         yield root, dirs, files
 
 
-gettext_synonyms = {
+default_gettext_synonyms = {
     '_',
     'gettext',
     'gettext_lazy',
@@ -178,6 +178,8 @@ def normalize_func(func):
 
 def parse_python(content, full_path=None):
     t = ast.parse(content)
+
+    gettext_synonyms = default_gettext_synonyms | set(get_conf_list('gettext_synonyms'))
 
     def w(node):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in gettext_synonyms:
@@ -565,7 +567,7 @@ def get_or_create_pofile(*, language_code, domain):
         return po, True
 
 
-def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None):
+def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msgid=None, save_to_disk=True):
     for domain in domains:
         po_file, _ = get_or_create_pofile(language_code=language_code, domain=domain)
 
@@ -576,7 +578,8 @@ def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msg
 
         if po_file:
             Path(po_file.fpath).parent.mkdir(parents=True, exist_ok=True)
-            po_file.save()
+            if save_to_disk:
+                po_file.save()
 
         yield result
 

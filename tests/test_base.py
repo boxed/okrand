@@ -62,6 +62,7 @@ def test_django_html():
 '''
 {% load i18n %}
 {% blocktranslate count counter=list|length with foo=foo bar=3 %}singular {{ x }}{% plural %}plural {{ y }}{% endblocktranslate %}
+{% blocktranslate count counter=list|length with foo=foo bar=3 %}singular {{ x }}{% plural %}plural {{ y }}{% endblocktranslate %}
 {% blocktranslate %}singular 2{% endblocktranslate %}
 {% trans "foo" %}
 '''))
@@ -557,7 +558,7 @@ def test_update_po_files_invalid_sort():
 
 
 def test_update_language(monkeypatch):
-    for result in update_language(language_code='tlh', strings=[], sort='alphabetical'):
+    for result in update_language(language_code='tlh', strings=[], sort='alphabetical', save_to_disk=False):
         if result.domain != 'django':
             continue
         assert result.new_strings == []
