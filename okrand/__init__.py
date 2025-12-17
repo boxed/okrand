@@ -13,6 +13,7 @@ from dataclasses import (
     field,
     fields,
 )
+from functools import lru_cache
 from pathlib import Path
 from typing import List
 
@@ -128,7 +129,7 @@ def walk_respecting_gitignore(path):
         yield root, dirs, files
 
 
-default_gettext_synonyms = {
+default_gettext_names = {
     '_',
     'gettext',
     'gettext_lazy',
@@ -169,17 +170,28 @@ def strip_suffix(s, *, suffix):
     return s
 
 
+@lru_cache
 def normalize_func(func):
     func = strip_suffix(func, suffix='_lazy')
     if func == '_':
         func = 'gettext'
+
+    if func in get_conf_list('gettext_synonyms'):
+        return 'gettext'
+    if func in get_conf_list('pgettext_synonyms'):
+        return 'pgettext'
+    if func in get_conf_list('ngettext_synonyms'):
+        return 'ngettext'
+    if func in get_conf_list('npgettext_synonyms'):
+        return 'npgettext'
+
     return func
 
 
 def parse_python(content, full_path=None):
     t = ast.parse(content)
 
-    gettext_synonyms = default_gettext_synonyms | set(get_conf_list('gettext_synonyms'))
+    gettext_synonyms = default_gettext_names | set(get_conf_list('gettext_synonyms')) | set(get_conf_list('pgettext_synonyms')) | set(get_conf_list('ngettext_synonyms')) | set(get_conf_list('npgettext_synonyms'))
 
     def w(node):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in gettext_synonyms:
