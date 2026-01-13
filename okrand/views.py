@@ -241,8 +241,7 @@ def i18n(request):
             Path(po.fpath).parent.mkdir(parents=True, exist_ok=True)
             po.save()
 
-        from django.core import management
-        management.call_command('compilemessages', ignore=ignore)
+        po.save_as_mofile(po.fpath.replace('.po', '.mo'))
 
         if js_catalog_output and po and po != po_orig:
             with open(js_catalog_output, 'wb') as f:
