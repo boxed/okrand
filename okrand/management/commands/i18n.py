@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand
 
-from okrand import update_po_files
+from okrand import (
+    update_mo_files,
+    update_po_files,
+)
 
 
 class Command(BaseCommand):
@@ -11,6 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         update_po_files()
+        update_mo_files()
 
 #
 # def main_interactive():

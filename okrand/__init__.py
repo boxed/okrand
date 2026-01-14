@@ -569,6 +569,15 @@ def update_po_files(*, old_msgid_by_new_msgid=None, sort=None, languages=None) -
     )
 
 
+def update_mo_files():
+    languages = [k for k, v in settings.LANGUAGES]
+
+    for domain in ['django', 'djangojs']:
+        for language_code in languages:
+            po, created = get_or_create_pofile(language_code=language_code, domain=domain)
+            po.save_as_mofile(po.fpath.replace('.po', '.mo'))
+
+
 def get_or_create_pofile(*, language_code, domain):
     path = Path(settings.BASE_DIR) / 'locale' / language_code / 'LC_MESSAGES' / f'{domain}.po'
     if path.exists():
