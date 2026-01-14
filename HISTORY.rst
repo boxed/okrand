@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.7.0 (2026-01-14)
+~~~~~~~~~~~~~~~~~~
+
+* The `manage.py i18n` command now writes compiled `.mo` files, making it a usable replacement for `manage.py compilemessages`
+
 
 1.6.1 (2026-01-13)
 ~~~~~~~~~~~~~~~~~~
