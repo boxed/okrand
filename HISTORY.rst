@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.7.1 (2026-03-04)
+~~~~~~~~~~~~~~~~~~
+
+* JS and ML-language family parsers now respect the `gettext_synonyms` config variable. The ML-languages parser also allows `foo.gettext` patterns.
+
+
 1.7.0 (2026-01-14)
 ~~~~~~~~~~~~~~~~~~
 

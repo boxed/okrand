@@ -142,6 +142,14 @@ default_gettext_names = {
 }
 
 
+def get_gettext_synonyms():
+    return default_gettext_names | set(get_conf_list('gettext_synonyms')) | set(get_conf_list('pgettext_synonyms')) | set(get_conf_list('ngettext_synonyms')) | set(get_conf_list('npgettext_synonyms'))
+
+
+def get_gettext_synonyms_regex():
+    return ' | '.join(get_gettext_synonyms())
+
+
 @dataclass(kw_only=True, frozen=True)
 class _String:
     domain: str
@@ -188,10 +196,10 @@ def normalize_func(func):
     return func
 
 
-def parse_python(content, full_path=None):
+def parse_python(content, full_path):
     t = ast.parse(content)
 
-    gettext_synonyms = default_gettext_names | set(get_conf_list('gettext_synonyms')) | set(get_conf_list('pgettext_synonyms')) | set(get_conf_list('ngettext_synonyms')) | set(get_conf_list('npgettext_synonyms'))
+    gettext_synonyms = get_gettext_synonyms()
 
     def w(node):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in gettext_synonyms:
@@ -254,11 +262,7 @@ def parse_python(content, full_path=None):
 find_string_regex = r'''(?x) 
     \b     # word boundary
     (?P<func>
-        gettext |
-        ngettext |
-        pgettext |
-        npgettext |
-        _ 
+        placeholder_gettext 
     )
     \s*
     \(
@@ -295,12 +299,9 @@ find_string_regex = r'''(?x)
 # language=pythonregexp
 ml_languages_find_string_regex = r'''(?x) 
     \b     # word boundary
+    \.?
     (?P<func>
-        gettext |
-        ngettext |
-        pgettext |
-        npgettext |
-        _ 
+        placeholder_gettext
     )
     \s+
     (?<!\\)
@@ -330,14 +331,15 @@ ml_languages_find_string_regex = r'''(?x)
     '''
 
 
-def parse_js(content, full_path=None):
+def parse_js(content, full_path):
     # I would like to have a proper JS parser here instead of a regex, but I couldn't find one that I could use in a reasonable way
     # An idea is to use @babel/parse to parse the file and dump the strings. But this would make node and babel a dependency. This is how far I got before I decided to stop:
     # const fs = require('fs');
     # const data = fs.readFileSync('some_js.js', 'utf8');
     # parse = require('@babel/parser').parse
     # ast = parse(data)
-    for m in re.finditer(find_string_regex, content):
+    regex = find_string_regex.replace('placeholder_gettext', get_gettext_synonyms_regex())
+    for m in re.finditer(regex, content):
         s = m.groupdict()['string']
         func = normalize_func(m.groupdict()['func'])
 
@@ -374,7 +376,8 @@ def parse_js(content, full_path=None):
 
 
 def parse_elm(content, full_path):
-    for m in re.finditer(ml_languages_find_string_regex, content):
+    regex = ml_languages_find_string_regex.replace('placeholder_gettext', get_gettext_synonyms_regex())
+    for m in re.finditer(regex, content):
         s = m.groupdict()['string']
         func = normalize_func(m.groupdict()['func'])
 
