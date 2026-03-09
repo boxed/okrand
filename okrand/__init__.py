@@ -1,4 +1,4 @@
-__version__ = '1.7.1'
+__version__ = '1.7.2'
 
 import ast
 import importlib
@@ -207,7 +207,7 @@ def parse_python(content, full_path):
 
             if not isinstance(node.args[0], ast.Constant):
                 # noinspection PyTypeChecker
-                print('Warning: found non-constant first argument:', ast.unparse(node.args[0]))
+                print('Warning: found non-constant first argument:', ast.unparse(node.args[0]), full_path, node.lineno)
                 return
 
             if func == 'gettext':
@@ -376,9 +376,12 @@ def parse_js(content, full_path):
 
 
 def parse_elm(content, full_path):
+    def elm_unicode_to_js(s):
+        return re.sub(r'\\u\{([0-9a-fA-F]{4})\}', lambda m: chr(int(m.group(1), 16)), s)
+
     regex = ml_languages_find_string_regex.replace('placeholder_gettext', get_gettext_synonyms_regex())
     for m in re.finditer(regex, content):
-        s = m.groupdict()['string']
+        s = elm_unicode_to_js(m.groupdict()['string'])
         func = normalize_func(m.groupdict()['func'])
 
         if func == 'gettext':
@@ -389,24 +392,24 @@ def parse_elm(content, full_path):
             )
         elif func == 'pgettext':
             yield String(
-                msgid=m.groupdict()['string2'],
+                msgid=elm_unicode_to_js(m.groupdict()['string2']),
                 translation_function=func,
-                context=m.groupdict()['string'],
+                context=s,
                 domain='djangojs',
             )
         elif func == 'ngettext':
             yield String(
-                msgid=m.groupdict()['string'],
+                msgid=s,
                 translation_function=func,
-                msgid_plural=m.groupdict()['string2'],
+                msgid_plural=elm_unicode_to_js(m.groupdict()['string2']),
                 domain='djangojs',
             )
         elif func == 'npgettext':
             yield String(
-                msgid=m.groupdict()['string2'],
+                msgid=elm_unicode_to_js(m.groupdict()['string2']),
                 translation_function=func,
                 context=s,
-                msgid_plural=m.groupdict()['string3'],
+                msgid_plural=elm_unicode_to_js(m.groupdict()['string3']),
                 domain='djangojs',
             )
         else:  # pragma: no cover

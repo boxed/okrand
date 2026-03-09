@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.7.2 (2026-03-09)
+~~~~~~~~~~~~~~~~~~
+
+* Elm language parser now handles unicode characters properly (`\u{00A0}` in Elm -> non-breaking space in .po file)
+
+
 1.7.1 (2026-03-04)
 ~~~~~~~~~~~~~~~~~~
 

@@ -19,6 +19,7 @@ from okrand import (
     ignore_filename,
     normalize_func,
     parse_django_template,
+    parse_elm,
     parse_js,
     parse_python,
     read_config,
@@ -132,6 +133,15 @@ def test_js():
 
     assert singular == {'singular', 'foo', 'baz', 'singular2'}
     assert plural == {'plural', ' plural2 '}
+
+
+def test_elm_unicode_escape():
+    singular, plural = collect(parse_elm(
+        '''
+        foo = gettext "hello \\u{00E9} world"
+        ''', 'test.elm'))
+
+    assert singular == {'hello \u00e9 world'}
 
 
 def test_ignore_filename():
