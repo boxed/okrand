@@ -1,4 +1,4 @@
-__version__ = '1.7.2'
+__version__ = '1.7.3'
 
 import ast
 import importlib
@@ -425,7 +425,7 @@ def extract_string_from_blocktrans_tokens(tokens):
     result = []
     for token in tokens:
         if token.token_type == TokenType.TEXT:
-            result.append(token.contents)
+            result.append(token.contents.replace('%', '%%'))
         elif token.token_type == TokenType.VAR:
             result.append(f'%({token.contents})s')
         else:  # pragma: no cover

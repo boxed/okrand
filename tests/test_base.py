@@ -94,7 +94,7 @@ class Foo:
         ngettext("singular", "plural")
         pgettext("context", "baz")
         npgettext("context", "singular2", ' plural2 ')
-'''))
+''', __file__))
 
     assert singular == {'singular', 'foo', 'bar', 'baz', 'singular2'}
     assert plural == {'plural', ' plural2 '}
@@ -110,9 +110,10 @@ class DealStage(NamedModel):
         initial = 'initial', gettext_lazy('initial')
         meeting_booked = 'meeting_booked', gettext_lazy('meeting booked')
         waiting_for_customer = 'waiting_for_customer', gettext_lazy('waiting for customer')
-    '''
-            )
+    ''',
+            __file__,
         )
+    )
 
     assert singular == {'initial', 'meeting booked', 'waiting for customer'}
     assert plural == set()
@@ -129,7 +130,7 @@ def test_js():
             asd_foo("don't catch this please")
             asd_pgettext("and not", "this either")
         }
-        '''))
+        ''', __file__))
 
     assert singular == {'singular', 'foo', 'baz', 'singular2'}
     assert plural == {'plural', ' plural2 '}
@@ -487,10 +488,10 @@ def test_warning_non_constant_argument(capsys):
     assert list(parse_python('''
 def foo(bar):
     return gettext(bar)
-    ''')) == []
+    ''', __file__)) == []
 
     captured = capsys.readouterr()
-    assert captured.out == 'Warning: found non-constant first argument: bar\n'
+    assert captured.out == f'Warning: found non-constant first argument: bar {__file__} 3\n'
 
 
 def test_raw_string_upgrade():
@@ -574,3 +575,14 @@ def test_update_language(monkeypatch):
         assert result.new_strings == []
         assert result.new_strings == []
         assert result.previously_obsolete_strings == ['success']
+
+
+def test_percent_escaped():
+    singular, plural = collect(parse_django_template(
+'''
+{% load i18n %}
+{% blocktrans with percent=price.labor_rebate_percent %}You have received {{ percent }}% discount on labor
+{% endblocktrans %}
+ '''))
+
+    assert singular == {'You have received %(percent)s%% discount on labor\n'}

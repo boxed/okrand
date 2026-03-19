@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.7.3 (2026-03-19)
+~~~~~~~~~~~~~~~~~~
+
+* Fixed `%` not being escaped to `%%` in `blocktrans` text, which caused issues with literal percent signs in translations
+
+
 1.7.2 (2026-03-09)
 ~~~~~~~~~~~~~~~~~~
 
