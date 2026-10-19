@@ -24,10 +24,18 @@ classifiers = [
 Homepage = "https://github.com/boxed/okrand"
 
 [dependency-groups]
-dev = ["hammett", "pytest-django"]
+dev = [
+    "hammett",
+    "iommi>=7.25.0",
+    "pytest>=8.3.5",
+    "pytest-django",
+]
 
 [tool.hatch.version]
 path = "okrand/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["okrand", "tests", "*.rst", "LICENSE"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["okrand"]

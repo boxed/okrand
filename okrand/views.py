@@ -11,7 +11,7 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.template import Template
-from django.utils.translation import activate
+from django.utils.translation import override
 from django.views.i18n import JavaScriptCatalog
 from iommi import (
     Column,
@@ -261,8 +261,8 @@ def i18n(request):
 
         if js_catalog_output and po and po != po_orig:
             with open(js_catalog_output, 'wb') as f:
-                activate(language_code)
-                f.write(JavaScriptCatalog().get(request).content)
+                with override(language_code):
+                    f.write(JavaScriptCatalog().get(request).content)
 
         return HttpResponseRedirect('/')
 

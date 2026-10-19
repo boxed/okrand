@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Unreleased
-~~~~~~~~~~
+1.8.0 (2026-10-19)
+~~~~~~~~~~~~~~~~~~
 
 * Message contexts are supported: the same msgid in different contexts gets its own entry, with a real `msgctxt`. Previously entries were keyed by msgid alone, and a context was written as a comment
 
@@ -11,6 +11,10 @@ Unreleased
 * A model field `verbose_name=pgettext_lazy(...)` is extracted with its context
 
 * The i18n view shows and saves entries with a context separately
+
+* The i18n view no longer leaves the edited language activated after writing the JS catalog
+
+* Packaging moved from `setup.py` to `pyproject.toml` (hatchling)
 
 
 1.7.3 (2026-03-19)

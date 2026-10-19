@@ -16,6 +16,7 @@ from okrand.views import (
 )
 
 
+@pytest.mark.django_db
 def test_i18n_view(settings):
     with pytest.raises(Http404):
         render_if_needed(request=req('get'), response=i18n(request=req('get'))).content.decode()

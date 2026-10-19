@@ -5,6 +5,7 @@ from django.apps import apps
 from django.utils.functional import Promise
 from django.utils.text import format_lazy
 from django.utils.translation import (
+    deactivate,
     gettext,
     gettext_lazy,
     pgettext_lazy,
@@ -464,6 +465,7 @@ class FakeTranslationCatalog:
 
 
 def test_switched_language():
+    deactivate()
     assert not hasattr(trans_real._active, 'value')
     trans_real._active.value = FakeTranslationCatalog()
     try:

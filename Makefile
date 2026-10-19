@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs clean lint test coverage docs dist tag release-check
+.PHONY: clean-pyc clean-build docs clean lint test coverage docs dist
 
 help:
 	@echo "clean-build - remove build artifacts"
@@ -8,8 +8,6 @@ help:
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "dist - package"
-	@echo "tag - set a tag with the current version number"
-	@echo "release-check - check release tag"
 
 clean: clean-build clean-pyc
 	rm -rf htmlcov/
@@ -34,15 +32,8 @@ test:
 	pytest
 
 dist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel
+	uv build
 	ls -l dist
-
-tag:
-	python setup.py tag
-
-release-check:
-	python setup.py release_check
 
 venv:
 	python -m venv venv
@@ -58,4 +49,4 @@ compilemessages:
 	(cd examples && django-admin compilemessages)
 
 release:
-	rm -rf dist/ build/ && python setup.py sdist bdist_wheel && twine upload dist/*
+	rm -rf dist/ build/ && uv build && uv publish
