@@ -2,7 +2,7 @@ from django.db.models import (
     Field,
     Model,
 )
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, pgettext_lazy
 
 
 class NoMetaNoExplicitVerboseName(Model):
@@ -29,3 +29,7 @@ class UpgradedStringsName(Model):
     class Meta:
         verbose_name = 'upgraded'
         verbose_name_plural = 'upgraded plural'
+
+
+class WithContextVerboseName(Model):
+    field = Field(verbose_name=pgettext_lazy('quantity', 'amount'))

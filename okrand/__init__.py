@@ -112,11 +112,13 @@ def _translations_for_model_only(model):
 def _translations_for_model_fields(model):
     for field in model._meta._get_fields(reverse=False):
         verbose_name = getattr(field.verbose_name, '_okrand_original_string', field.verbose_name)
+        context = getattr(field.verbose_name, '_okrand_original_context', '')
 
         if verbose_name is not None:
             yield String(
                 msgid=verbose_name,
-                translation_function='gettext',
+                translation_function='pgettext' if context else 'gettext',
+                context=context,
                 domain='django',
             )
 

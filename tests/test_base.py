@@ -7,6 +7,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import (
     gettext,
     gettext_lazy,
+    pgettext_lazy,
     trans_real,
 )
 from okrand._vendored.polib import (
@@ -458,7 +459,8 @@ def test_collect_django_models(capsys, model, expected):
 class FakeTranslationCatalog:
     # noinspection PyMethodMayBeStatic
     def gettext(self, s):
-        return f'<translation of {s}>'
+        # pgettext asks for "context\x04msgid"
+        return f'<translation of {s.rpartition(chr(4))[2]}>'
 
 
 def test_switched_language():
@@ -638,3 +640,20 @@ def test__update_language_keeps_an_existing_msgctxt_entry():
 
     assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult()
     assert [(x.msgctxt, x.msgid, x.msgstr, x.obsolete) for x in po_file] == [('verb', 'open', 'öppna', False)]
+
+
+def test_upgrade_verbose_name_keeps_the_context_of_pgettext():
+    class Foo:
+        def __init__(self):
+            self.verbose_name = pgettext_lazy('quantity', 'amount')
+
+    f = Foo()
+    upgrade_verbose_name(f)
+    assert f.verbose_name._okrand_original_string == 'amount'
+    assert f.verbose_name._okrand_original_context == 'quantity'
+
+
+def test_model_field_verbose_name_with_a_context():
+    from tests.models import WithContextVerboseName
+    strings = list(translations_for_model(WithContextVerboseName))
+    assert String(msgid='amount', translation_function='pgettext', context='quantity', domain='django') in strings

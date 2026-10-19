@@ -8,6 +8,8 @@ Unreleased
 
 * `{% trans %}` and `{% blocktrans %}` with `context "..."` are extracted with their context
 
+* A model field `verbose_name=pgettext_lazy(...)` is extracted with its context
+
 * The i18n view shows and saves entries with a context separately
 
 

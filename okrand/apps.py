@@ -15,15 +15,30 @@ def get_args_from_proxy(proxy):
     return args
 
 
+def is_pgettext_proxy(proxy):
+    # A lazy proxy pickles as (unpickle function, (wrapped function, args, kwargs, *result classes))
+    func = proxy.__reduce__()[1][0]
+    return func.__name__ in ('pgettext', 'npgettext')
+
+
 def get_original_string_from_proxy(proxy):
     args = get_args_from_proxy(proxy)
+    if is_pgettext_proxy(proxy):
+        return args[1]
     return args[0]
+
+
+def get_original_context_from_proxy(proxy):
+    if is_pgettext_proxy(proxy):
+        return get_args_from_proxy(proxy)[0]
+    return ''
 
 
 def upgrade_verbose_name(obj):
     original = obj.verbose_name
     if isinstance(original, Promise):
         obj.verbose_name._okrand_original_string = get_original_string_from_proxy(original)
+        obj.verbose_name._okrand_original_context = get_original_context_from_proxy(original)
         assert not isinstance(obj.verbose_name._okrand_original_string, Promise)
         return
 
