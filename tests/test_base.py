@@ -586,3 +586,55 @@ def test_percent_escaped():
  '''))
 
     assert singular == {'You have received %(percent)s%% discount on labor\n'}
+
+
+def test_django_html_context():
+    strings = list(parse_django_template(
+'''
+{% load i18n %}
+{% trans "open" %}
+{% trans "open" context "verb" %}
+{% trans "open"|capfirst context "adjective, singular" %}
+{% blocktrans context "adjective, plural" %}open {{ x }}{% endblocktrans %}
+'''))
+
+    assert [(x.context, x.msgid) for x in strings] == [
+        ('', 'open'),
+        ('verb', 'open'),
+        ('adjective, singular', 'open'),
+        ('adjective, plural', 'open %(x)s'),
+    ]
+
+
+def test__update_language_same_msgid_in_different_contexts():
+    po_file = POFile()
+    po_file.append(POEntry(msgid='open', msgstr='öppna'))
+    strings = [
+        String(msgid='open', translation_function='gettext', domain='django'),
+        String(msgid='open', translation_function='pgettext', context='adjective, singular', domain='django'),
+    ]
+
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult(new_strings=['open'])
+    assert [(x.msgctxt, x.msgid, x.msgstr) for x in po_file] == [
+        (None, 'open', 'öppna'),
+        ('adjective, singular', 'open', ''),
+    ]
+
+    # Running again changes nothing, and a context that is no longer used goes obsolete on its own.
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult()
+    assert _update_language(po_file=po_file, strings=strings[1:], domain='django') == UpdateResult(newly_obsolete_strings=['open'])
+    assert [(x.msgctxt, x.obsolete) for x in po_file] == [
+        (None, True),
+        ('adjective, singular', False),
+    ]
+
+
+def test__update_language_keeps_an_existing_msgctxt_entry():
+    po_file = POFile()
+    po_file.append(POEntry(msgctxt='verb', msgid='open', msgstr='öppna'))
+    strings = [
+        String(msgid='open', translation_function='pgettext', context='verb', domain='django'),
+    ]
+
+    assert _update_language(po_file=po_file, strings=strings, domain='django') == UpdateResult()
+    assert [(x.msgctxt, x.msgid, x.msgstr, x.obsolete) for x in po_file] == [('verb', 'open', 'öppna', False)]

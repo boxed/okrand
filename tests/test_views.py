@@ -7,8 +7,11 @@ from tests.helpers import (
     req,
     staff_req,
 )
+from okrand._vendored.polib import POEntry
 from okrand.views import (
     i18n,
+    po_entry_display_name,
+    po_entry_to_key,
     strip_prefix,
 )
 
@@ -37,3 +40,13 @@ def test_strip_prefix():
     assert strip_prefix('foobar', prefix='baz') == 'foobar'
     with pytest.raises(AssertionError):
         assert strip_prefix('foobar', prefix='baz', strict=True) == 'foobar'
+
+
+def test_po_entry_key_and_display_name_include_the_context():
+    plain = POEntry(msgid='open')
+    with_context = POEntry(msgctxt='adjective, singular', msgid='open')
+
+    assert po_entry_to_key(plain) == 'open'
+    assert po_entry_to_key(with_context) == 'adjective_singular_open'
+    assert po_entry_display_name(plain) == 'open'
+    assert po_entry_display_name(with_context) == 'open (adjective, singular)'

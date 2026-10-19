@@ -433,6 +433,13 @@ def extract_string_from_blocktrans_tokens(tokens):
     return ''.join(result)
 
 
+def _template_message_context(node):
+    # A constant `context "..."` compiles to a FilterExpression whose var is the string itself.
+    if node.message_context is None:
+        return ''
+    return node.message_context.var
+
+
 def parse_django_template(content, full_path=None):
     t = Template(content, origin=Origin(name=str(full_path), template_name=str(full_path)))
     t.child_nodelists = ("nodelist",)
@@ -453,6 +460,7 @@ def parse_django_template(content, full_path=None):
             yield String(
                 msgid=node.filter_expression.var.literal,
                 translation_function='{% trans %}',
+                context=_template_message_context(node),
                 domain='django',
             )
         elif isinstance(node, BlockTranslateNode):
@@ -464,6 +472,7 @@ def parse_django_template(content, full_path=None):
                 msgid=extract_string_from_blocktrans_tokens(node.singular),
                 msgid_plural=msgid_plural,
                 translation_function='{% blocktrans %}',
+                context=_template_message_context(node),
                 domain='django',
             )
 
@@ -601,7 +610,7 @@ def update_language(*, language_code, strings, sort='none', old_msgid_by_new_msg
         result = _update_language(po_file=po_file, strings=strings, old_msgid_by_new_msgid=old_msgid_by_new_msgid, domain=domain)
 
         if sort == 'alphabetical':
-            po_file.sort(key=lambda x: x.msgid)
+            po_file.sort(key=lambda x: (x.msgid, x.msgctxt or ''))
 
         if po_file:
             Path(po_file.fpath).parent.mkdir(parents=True, exist_ok=True)
@@ -618,6 +627,21 @@ def normalize(msgid):
         return msgid
 
 
+def string_key(s):
+    # The same msgid in different contexts is different strings, each with its own entry.
+    return s.context or None, s.msgid
+
+
+def po_entry_key(po_entry):
+    return po_entry.msgctxt or None, po_entry.msgid
+
+
+def _find_key_by_msgid(keys, msgid):
+    # Renames are given as msgids. A msgid that is in several contexts can't be renamed this way.
+    [key] = [key for key in keys if key[1] == msgid]
+    return key
+
+
 def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -> UpdateResult:
     for po_entry in po_file:
         if po_entry.msgid:
@@ -626,14 +650,14 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
             po_entry.msgid_plural = normalize(po_entry.msgid_plural)
 
     # Singular
-    string_by_msgid = {
-        s.msgid: s
+    string_by_key = {
+        string_key(s): s
         for s in strings
         if s.domain == domain
     }
 
-    po_entry_by_msgid = {
-        x.msgid: x
+    po_entry_by_key = {
+        po_entry_key(x): x
         for x in po_file
     }
 
@@ -651,33 +675,28 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
         for new_msgid, old_msgid in normalized_old_msgid_by_new_msgid.items():
             if not old_msgid:
                 continue
-            assert new_msgid in string_by_msgid, new_msgid
-            if not old_msgid:
-                po_entry_by_msgid[new_msgid] = POEntry(
-                    msgid=new_msgid,
-                    comment=string_by_msgid[new_msgid].context,
-                )
-            else:
-                assert old_msgid in po_entry_by_msgid
-                po_entry = po_entry_by_msgid.pop(old_msgid)
-                po_entry.flags.append('fuzzy')
-                po_entry.msgid = new_msgid
-                po_entry_by_msgid[new_msgid] = po_entry
+            new_key = _find_key_by_msgid(string_by_key, new_msgid)
+            old_key = _find_key_by_msgid(po_entry_by_key, old_msgid)
+            po_entry = po_entry_by_key.pop(old_key)
+            po_entry.flags.append('fuzzy')
+            po_entry.msgctxt = new_key[0]
+            po_entry.msgid = new_msgid
+            po_entry_by_key[new_key] = po_entry
 
     new_strings = [
         s
-        for msgid, s in string_by_msgid.items()
-        if msgid not in po_entry_by_msgid
+        for key, s in string_by_key.items()
+        if key not in po_entry_by_key
     ]
 
     obsolete_po_entries = [
         po_entry
-        for msgid, po_entry in po_entry_by_msgid.items()
-        if msgid not in string_by_msgid
+        for key, po_entry in po_entry_by_key.items()
+        if key not in string_by_key
     ]
 
-    for msgid, po_entry in po_entry_by_msgid.items():
-        if po_entry.obsolete and msgid in string_by_msgid:
+    for key, po_entry in po_entry_by_key.items():
+        if po_entry.obsolete and key in string_by_key:
             # Marked as obsolete, but we found it now
             po_entry.obsolete = False
 
@@ -689,8 +708,8 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
 
     unchanged_po_entries = [
         po_entry
-        for msgid, po_entry in po_entry_by_msgid.items()
-        if msgid in string_by_msgid
+        for key, po_entry in po_entry_by_key.items()
+        if key in string_by_key
     ]
 
     if not new_strings:
@@ -701,8 +720,9 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
         for s in new_strings:
             data = dict(
                 msgid=s.msgid,
-                comment=s.context,
             )
+            if s.context:
+                data.update(dict(msgctxt=s.context))
             if s.msgid_plural is None:
                 data.update(dict(msgstr=''))
             else:
@@ -724,7 +744,7 @@ def _update_language(*, po_file, strings, old_msgid_by_new_msgid=None, domain) -
 
     # Plural: write changed plural, and mark as fuzzy
     for po_entry in unchanged_po_entries:
-        s = string_by_msgid[po_entry.msgid]
+        s = string_by_key[po_entry_key(po_entry)]
         if s.msgid_plural != (po_entry.msgid_plural or None):  # the "or None" is because polib stores empty string when no plural exists
             po_entry.msgid_plural = s.msgid_plural
             if 'fuzzy' not in po_entry.flags:

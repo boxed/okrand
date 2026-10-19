@@ -40,10 +40,23 @@ def strip_prefix(s, *, prefix, strict=False):
 
 
 def msgid_to_key(msgid):
-    r = re.sub(r'[%_ ()\n]', '_', msgid).strip('_')
+    r = re.sub(r'[%_ (),\n]', '_', msgid).strip('_')
     while '__' in r:
         r = r.replace('__', '_')
     return r
+
+
+def po_entry_to_key(po_entry):
+    # The same msgid in different contexts is different entries, so the context is part of the key.
+    if po_entry.msgctxt:
+        return msgid_to_key(f'{po_entry.msgctxt} {po_entry.msgid}')
+    return msgid_to_key(po_entry.msgid)
+
+
+def po_entry_display_name(po_entry):
+    if po_entry.msgctxt:
+        return f'{po_entry.msgid} ({po_entry.msgctxt})'
+    return po_entry.msgid
 
 
 def i18n(request):
@@ -177,30 +190,33 @@ def i18n(request):
                 continue
             if x.msgstr_plural:
                 for k, v in x.msgstr_plural.items():
-                    result[f'{msgid_to_key(x.msgid)}${k}'] = Field(
-                        group=x.msgid,
+                    result[f'{po_entry_to_key(x)}${k}'] = Field(
+                        group=po_entry_display_name(x),
                         initial=v,
-                        display_name=x.msgid + f" (x{k+1})",
+                        display_name=po_entry_display_name(x) + f" (x{k+1})",
                         help_text=f'number of items {k+1}',
                         required=False,
                         extra__msgid=x.msgid,
+                        extra__msgctxt=x.msgctxt or None,
                         extra__plural_index=k,
                     )
             else:
-                result[msgid_to_key(x.msgid)] = Field(
-                    group=x.msgid,
+                result[po_entry_to_key(x)] = Field(
+                    group=po_entry_display_name(x),
                     initial=x.msgstr,
-                    display_name=x.msgid,
+                    display_name=po_entry_display_name(x),
                     help_text='\n'.join(getattr(x, 'problems', [])),
                     required=False,
                     extra__msgid=x.msgid,
+                    extra__msgctxt=x.msgctxt or None,
                     extra__plural_index=None,
                 )
-            result[msgid_to_key(x.msgid) + '_ignore'] = Field.boolean(
-                group=x.msgid,
+            result[po_entry_to_key(x) + '_ignore'] = Field.boolean(
+                group=po_entry_display_name(x),
                 display_name='Ignore',
                 required=False,
                 extra__msgid=x.msgid,
+                extra__msgctxt=x.msgctxt or None,
                 extra__plural_index=None,
                 extra__ignore_flag=True,
                 input__attrs__style={
@@ -217,7 +233,7 @@ def i18n(request):
             return
 
         for field in form.fields.values():
-            m = po.find(field.extra.msgid)
+            m = po.find(field.extra.msgid, msgctxt=field.extra.msgctxt)
             if m is None:
                 continue
 

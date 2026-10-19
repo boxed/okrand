@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Unreleased
+~~~~~~~~~~
+
+* Message contexts are supported: the same msgid in different contexts gets its own entry, with a real `msgctxt`. Previously entries were keyed by msgid alone, and a context was written as a comment
+
+* `{% trans %}` and `{% blocktrans %}` with `context "..."` are extracted with their context
+
+* The i18n view shows and saves entries with a context separately
+
+
 1.7.3 (2026-03-19)
 ~~~~~~~~~~~~~~~~~~
 
